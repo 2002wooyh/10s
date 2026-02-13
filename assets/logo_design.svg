@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80">
+  <defs>
+    <style>
+      .stroke-text { 
+        fill: none; 
+        stroke: #262626; 
+        stroke-width: 4; 
+        stroke-linecap: round; 
+        stroke-linejoin: round; 
+      }
+      .fill-text {
+        fill: #262626;
+        font-family: 'Gowun Batang', serif;
+        font-weight: 700;
+        font-size: 50px;
+      }
+    </style>
+  </defs>
+  
+  <!-- Concept: The 'ㄴ' of '만' acts as a timeline/underline -->
+  
+  <!-- Text "10초" -->
+  <!-- Using a path to draw "10" custom or using font with manual underline -->
+  <!-- Let's use clean text for readability but add the custom stroke -->
+  
+  <text x="10" y="55" class="fill-text" font-size="60" font-style="italic">10</text>
+  <text x="80" y="55" class="fill-text" font-size="40">초</text>
+  
+  <!-- "만" - Deconstructed to extend the ㄴ -->
+  <!-- Top part of '만' (ㅁ + ㅏ) -->
+  <text x="130" y="55" class="fill-text" font-size="40">마</text>
+  
+  <!-- The extended 'ㄴ' stroke -->
+  <!-- Starts under '마', goes left all the way under 10 -->
+  <path d="M145,65 L145,70 Q145,75 140,75 L10,75" fill="none" stroke="#262626" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Hourglass hint in the '0' of 10? -->
+  <!-- Let's add a small hourglass icon integrated into the 0 or next to text implies 'time' -->
+  <!-- Or just keep the extended line as the main "design" element for simplicity/elegance -->
+
+</svg>

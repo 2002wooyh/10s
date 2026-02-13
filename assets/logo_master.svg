@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 100">
+  <defs>
+    <style>
+      .logo-stroke { 
+        fill: none; 
+        stroke: #262626; 
+        stroke-width: 5; 
+        stroke-linecap: round; 
+        stroke-linejoin: round; 
+      }
+      .logo-fill {
+        fill: #262626; 
+      }
+    </style>
+  </defs>
+
+  <!-- "1" -->
+  <path class="logo-stroke" d="M30,22 L30,68" />
+  <path class="logo-stroke" d="M18,32 L30,22" />
+  
+  <!-- "0" (Stopwatch/Timer) -->
+  <!-- Main Dial -->
+  <circle cx="75" cy="45" r="23" class="logo-stroke" />
+  
+  <!-- Top Button (Clicker) -->
+  <path class="logo-stroke" d="M70,18 L80,18 M75,18 L75,22" />
+  <!-- Side Buttons (Angled) - Optional, let's keep it minimalist: just main button -->
+  <!-- <path class="logo-stroke" d="M92,25 L97,20" /> -->
+
+  <!-- Timer Hand (Pointing to ~10 seconds / 2 o'clock) -->
+  <path class="logo-stroke" d="M75,45 L88,32" stroke-width="4" />
+  <!-- Center dot -->
+  <circle cx="75" cy="45" r="3" class="logo-fill" />
+  
+  <!-- "초" (Geometric) -->
+  <!-- Position: X 120 -->
+  <path class="logo-stroke" d="M135,24 L135,30" />
+  <path class="logo-stroke" d="M120,38 L150,38" />
+  <path class="logo-stroke" d="M135,38 Q130,48 125,58" />
+  <path class="logo-stroke" d="M135,38 Q140,48 145,58" />
+  <path class="logo-stroke" d="M135,61 L135,71" />
+  <path class="logo-stroke" d="M120,71 L150,71" />
+
+  <!-- "만" (Geometric) -->
+  <!-- Position: X 170 -->
+  <path class="logo-stroke" d="M170,38 L190,38 L190,58 L170,58 Z" stroke-linejoin="round" />
+  <path class="logo-stroke" d="M200,33 L200,68" />
+  <path class="logo-stroke" d="M200,48 L208,48" />
+  <path class="logo-stroke" d="M175,73 L175,78 Q175,83 180,83 L205,83" />
+
+</svg>

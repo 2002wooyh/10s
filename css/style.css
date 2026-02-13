@@ -1,0 +1,1145 @@
+:root {
+    /* Instagram-like Minimal Palette */
+    --primary: #262626;
+    /* Dark Grey/Black */
+    --primary-light: #525252;
+    --accent: #0095f6;
+    /* Instagram Blue for actions */
+    --secondary: #fa4454;
+    /* Pink/Red for alerts */
+
+    --success: #0095f6;
+    /* Blue for success */
+    --warning: #fa4454;
+    /* Red for warning */
+    --danger: #ed4956;
+
+    --bg-main: #ffffff;
+    --bg-secondary: #fafafa;
+
+    --text-main: #262626;
+    --text-sub: #8e8e8e;
+
+    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-display: 'Inter', sans-serif;
+    --font-brand: 'Noto Sans KR', sans-serif;
+    /* Verified Korean font for logo */
+    /* Unified font for cleaner look */
+
+    --shadow-card: none;
+    --border-light: 1px solid #dbdbdb;
+    --border-strong: 1px solid #262626;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background: #fafafa;
+    /* Light grey background for desktop view */
+    color: var(--text-main);
+    font-family: var(--font-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* Remove ambient background animation for clean look */
+body::before,
+body::after {
+    display: none;
+}
+
+#app-container {
+    width: 100%;
+    max-width: 450px;
+    /* Mobile width */
+    height: 100vh;
+    max-height: 900px;
+    background: var(--bg-main);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #dbdbdb;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    /* Space for the absolute header */
+}
+
+/* Utilities */
+.view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+    /* Simpler transition */
+    background: var(--bg-main);
+    z-index: 0;
+    padding: 16px;
+    /* Slightly reduced padding */
+}
+
+.view.active {
+    opacity: 1;
+    pointer-events: all;
+    z-index: 10;
+}
+
+.btn-primary {
+    background: var(--accent);
+    /* Instagram Blue */
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 8px;
+    /* Less rounded */
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: none;
+    transition: opacity 0.2s ease;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.btn-primary:active {
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 1px solid #dbdbdb;
+    color: var(--text-main);
+    padding: 12px 20px;
+    border-radius: 8px;
+    width: 100%;
+    margin-top: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.btn-secondary:active {
+    background: #fafafa;
+}
+
+/* Splash */
+#view-splash {
+    justify-content: center;
+    align-items: center;
+    background: var(--bg-main);
+}
+
+.logo-container {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.logo-icon {
+    font-size: 4rem;
+    color: var(--text-main);
+    /* Solid black */
+    margin-bottom: 24px;
+}
+
+.logo-container h1 {
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 8px;
+    color: var(--text-main);
+}
+
+/* Re-using .brand-num and .brand-text from header for consistency, 
+   but specific sizing for splash might be needed if header sizes are too small.
+   Let's add specific overrides for splash if needed, but for now rely on shared classes 
+   and maybe scale up.
+*/
+.logo-container .brand-num {
+    font-size: 3.5rem;
+    /* Larger for splash */
+}
+
+.logo-container .brand-text {
+    font-size: 1.8rem;
+    /* Larger for splash */
+}
+
+.logo-container p {
+    color: var(--text-sub);
+    font-weight: 400;
+    font-size: 0.95rem;
+}
+
+.loader {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #f3f3f3;
+    border-top-color: var(--text-sub);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Home */
+.app-header {
+    display: flex;
+    justify-content: flex-start;
+    /* Align left */
+    align-items: center;
+    padding: 20px 24px;
+    background: white;
+    color: var(--primary);
+    position: relative;
+    width: 100%;
+    z-index: 100;
+    box-shadow: none;
+    border-bottom: none;
+}
+
+/* Center header for Management and Home View */
+/* Center header for Home View (Shifted right) */
+#view-home .app-header {
+    justify-content: center;
+    padding-left: 60px;
+}
+
+/* Center header for Management View (Pure center) */
+#view-management .app-header {
+    justify-content: center;
+    padding-left: 0;
+}
+
+.app-header img {
+    display: block;
+    /* Ensure image alignment */
+}
+
+.brand-num {
+    font-size: 2.2rem;
+    font-style: italic;
+    transform: skewX(-10deg);
+    line-height: 1;
+}
+
+.brand-text {
+    font-size: 1.2rem;
+    font-weight: 400;
+    line-height: 1;
+    transform: none;
+    /* Reset any skew */
+    font-family: 'Noto Sans KR', sans-serif;
+    /* Clean font for text */
+    font-weight: 700;
+}
+
+/* Updated Back Button and Icons */
+.btn-icon,
+.btn-back {
+    background: transparent;
+    width: 40px;
+    height: 40px;
+    border-radius: 0;
+    border: none;
+    color: var(--primary);
+    /* Black icons */
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: none;
+    display: flex;
+    justify-content: flex-start;
+    /* Align left for back button */
+    align-items: center;
+    padding: 0;
+    position: relative;
+    z-index: 2;
+    /* Ensure clickable above centered title */
+}
+
+.app-header .btn-icon,
+.app-header .btn-back {
+    color: var(--primary);
+    /* Maintain black in header */
+}
+
+.btn-icon {
+    justify-content: flex-end;
+    /* Align right for action buttons */
+}
+
+.btn-icon:active,
+.btn-back:active {
+    opacity: 0.6;
+    transform: none;
+}
+
+.nfc-scan-area {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+    padding-bottom: 120px;
+    /* Lift button higher */
+}
+
+.nfc-wrapper {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.nfc-btn {
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    /* Emotional Sky Blue Gradient */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    /* White text */
+    font-size: 5rem;
+    box-shadow: 0 10px 40px rgba(79, 172, 254, 0.4);
+    /* Emotional Glow */
+    z-index: 2;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    border: none;
+}
+
+.nfc-btn img {
+    filter: brightness(0) invert(1);
+    /* Make black icon white */
+}
+
+.nfc-btn::after {
+    display: none;
+}
+
+.nfc-btn:active {
+    transform: scale(0.95);
+}
+
+.nfc-btn span {
+    font-size: 1.2rem;
+    margin-top: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: white;
+    /* White text */
+    text-transform: uppercase;
+}
+
+.wave {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(79, 172, 254, 0.3);
+    /* Sky Blue Wave */
+    border: none;
+    opacity: 0;
+    z-index: 1;
+    animation: wave 2.5s infinite cubic-bezier(0, 0.55, 0.45, 1);
+}
+
+.wave:nth-child(2) {
+    animation-delay: 0.6s;
+    background: rgba(0, 242, 254, 0.3);
+    /* Lighter Blue Wave */
+}
+
+.blink {
+    margin-top: 30px;
+    color: var(--text-sub);
+    font-weight: 400;
+    animation: blink 2s infinite ease-in-out;
+}
+
+.dashboard {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 80px;
+    /* Space for nav */
+}
+
+.dashboard::-webkit-scrollbar {
+    display: none;
+}
+
+.status-card {
+    background: #fafafa;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 24px;
+    border: 1px solid #efefef;
+    box-shadow: none;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-item .label {
+    font-size: 0.85rem;
+    color: var(--text-sub);
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.stat-item .value {
+    font-size: 1.6rem;
+    font-weight: 600;
+    font-family: var(--font-display);
+}
+
+.value.success {
+    color: var(--success);
+}
+
+.value.warning {
+    color: var(--danger);
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    /* No gap, borders between items */
+}
+
+.history-item {
+    background: white;
+    padding: 16px 0;
+    border-bottom: 1px solid #efefef;
+    border-radius: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    transition: background 0.2s;
+}
+
+.history-item:active {
+    background: #fafafa;
+    transform: none;
+}
+
+.history-item.danger {
+    background: white;
+    border-bottom: 1px solid #efefef;
+}
+
+.history-item.danger .status-text {
+    /* Assuming there's text inside */
+    color: var(--danger);
+}
+
+.bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: white;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    padding: 12px 10px 24px 10px;
+    /* Padding for iPhone Home Indicator */
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    border-top: 1px solid #dbdbdb;
+    border-radius: 0;
+    box-shadow: none;
+    z-index: 100;
+}
+
+.bottom-nav button {
+    background: none;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.1s;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.4;
+    /* Inactive state */
+}
+
+.bottom-nav button:active {
+    transform: scale(0.95);
+}
+
+.bottom-nav button.active {
+    color: var(--text-main);
+    background: none;
+    transform: none;
+    opacity: 1;
+    /* Active state */
+}
+
+/* Measurement - Visualization */
+#view-measurement {
+    align-items: center;
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    /* Vibrant Blue */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+
+
+#waveformCanvas {
+    width: 100%;
+    height: 120px;
+    margin-bottom: 20px;
+    z-index: 10;
+}
+
+#fftCanvas {
+    width: 100%;
+    height: 120px;
+    margin-bottom: 20px;
+    z-index: 10;
+}
+
+.timer-container {
+    text-align: center;
+    margin-bottom: 30px;
+    z-index: 10;
+}
+
+#measure-timer {
+    font-size: 4rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    color: white;
+    line-height: 1;
+}
+
+.timer-label {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 5px;
+}
+
+/* Page Transition Animation */
+.page-transition {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: linear-gradient(135deg, #0095f6, #0057ff);
+    z-index: 9999;
+    clip-path: circle(0% at 50% 50%);
+    transition: clip-path 0.6s cubic-bezier(0.87, 0, 0.13, 1);
+    pointer-events: none;
+}
+
+.page-transition.active {
+    clip-path: circle(150% at 50% 50%);
+}
+
+/* Animations */
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes wave {
+    0% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes drift {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    100% {
+        transform: translate(30px, 30px);
+    }
+}
+
+.bounce {
+    animation: bounce 2s infinite ease-in-out;
+    font-size: 3.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 24px;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+.measurement-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    flex: 1;
+    justify-content: center;
+}
+
+/* Expand Animation Overlay */
+/* Progress Ring */
+.progress-ring {
+    position: absolute;
+    top: -10px;
+    /* Adjust based on wrapper/ring size diff (240 - 220) / 2 = 10 */
+    left: -10px;
+    z-index: 100;
+    transform: rotate(-90deg);
+}
+
+.progress-ring__circle {
+    transition: stroke-dashoffset 0.1s linear;
+    transform-origin: 50% 50%;
+    stroke-linecap: round;
+}
+
+/* Onboarding */
+#view-onboarding {
+    justify-content: center;
+    text-align: center;
+}
+
+.onboarding-step h2 {
+    font-family: var(--font-display);
+    font-size: 2.2rem;
+    margin-bottom: 12px;
+    color: var(--text-main);
+}
+
+.onboarding-step p {
+    color: var(--text-sub);
+    margin-bottom: 50px;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
+/* Result styles will be dynamic */
+/* Result styles will be dynamic */
+.result-card-large {
+    text-align: center;
+    padding: 40px 30px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: none;
+    margin-bottom: 24px;
+    animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    border: 1px solid #dbdbdb;
+}
+
+.result-card-large h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.score {
+    font-size: 6rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    margin: 10px 0 20px 0;
+    line-height: 1;
+    color: var(--text-main);
+}
+
+.result-details {
+    text-align: left;
+    background: #fafafa;
+    padding: 24px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: none;
+    border: 1px solid #dbdbdb;
+}
+
+/* Map Container */
+.map-container {
+    height: 280px;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: none;
+    border: 1px solid #dbdbdb;
+}
+
+.factory-map {
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+    background-color: #f8fafc;
+}
+
+.map-pin {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border: 3px solid white;
+    transition: transform 0.3s;
+}
+
+.map-pin:hover {
+    transform: scale(1.2);
+}
+
+.trend-container {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    box-shadow: none;
+    border: 1px solid #dbdbdb;
+}
+
+/* Equipment Status Card Layout */
+.management-main {
+    background: white;
+    /* Back to white as requested */
+    padding: 24px 0 0 24px;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+.equipment-grid {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 16px;
+    padding-bottom: 24px;
+    /* Space for shadow */
+    padding-right: 24px;
+    /* End padding */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scroll on iOS */
+    height: auto;
+    /* Let it wrap content */
+    flex-shrink: 0;
+    /* Do not shrink */
+    align-items: flex-start;
+    /* Align cards to top */
+    cursor: grab;
+    /* Cursor for drag indication */
+}
+
+.equipment-grid:active {
+    cursor: grabbing;
+}
+
+/* Hide scrollbar */
+.equipment-grid::-webkit-scrollbar {
+    display: none;
+}
+
+.equip-card {
+    min-width: 0;
+    width: 75vw;
+    /* Based on typical mobile ratio for 3:4 card */
+    max-width: 320px;
+    aspect-ratio: 3/4;
+    /* Strict 3:4 Ratio */
+    height: auto;
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    /* emotional soft shadow: diffused, low opacity, slightly bluish ambient */
+    box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.07), 0 10px 20px -10px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s;
+    cursor: pointer;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    /* Extremely subtle border */
+    scroll-snap-align: center;
+    position: relative;
+    user-select: none;
+    flex: 0 0 auto;
+    /* Prevent shrinking */
+}
+
+.equip-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06);
+    /* Pressed state */
+}
+
+.equip-img-wrapper {
+    width: 100%;
+    flex: 1;
+    /* Fill remaining space */
+    position: relative;
+    background: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.equip-img-wrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 24px;
+    /* Slightly more whitespace for "floating" look */
+}
+
+.status-badge {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: white;
+    z-index: 1;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.status-badge.safe {
+    background: rgba(0, 200, 83, 1);
+    /* Green */
+}
+
+.status-badge.warning {
+    background: rgba(255, 152, 0, 1);
+    /* Orange */
+}
+
+.equip-info {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 25%;
+}
+
+.equip-info h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: var(--text-main);
+    white-space: normal;
+    /* Allow wrap */
+    line-height: 1.3;
+}
+
+.equip-info p {
+    font-size: 1rem;
+    color: var(--text-sub);
+    margin: 0;
+}
+
+/* Report View Styles */
+.report-main {
+    background: #fafafa;
+    padding: 24px;
+    padding-bottom: 80px;
+    /* Space for bottom nav if needed, though this covers it usually */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.report-hero {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    /* Soft shadow */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.report-hero img {
+    width: 60%;
+    max-width: 180px;
+    margin-bottom: 16px;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.1));
+}
+
+.report-hero h2 {
+    font-size: 1.4rem;
+    color: var(--text-main);
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+
+.report-hero p {
+    color: var(--text-sub);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.health-score-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.health-score-badge {
+    background: #0095f6;
+    /* Default Blue */
+    color: white;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-weight: 800;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 12px rgba(0, 149, 246, 0.3);
+}
+
+.health-score-label {
+    font-size: 0.9rem;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 12px;
+    margin-top: 8px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.metric-card {
+    background: white;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.metric-label {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+}
+
+.component-list {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.component-item {
+    margin-bottom: 16px;
+}
+
+.component-item:last-child {
+    margin-bottom: 0;
+}
+
+.comp-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.comp-status {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+}
+
+.progress-bg {
+    width: 100%;
+    height: 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    width: 0%;
+    /* Create animation later if needed */
+}
+
+/* Timeline */
+.timeline {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.timeline-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-marker {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #dbdbdb;
+    margin-top: 6px;
+    position: relative;
+    z-index: 2;
+}
+
+.timeline-marker.active {
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(0, 149, 246, 0.2);
+}
+
+.timeline-item::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 18px;
+    bottom: -20px;
+    width: 2px;
+    background: #f0f0f0;
+    z-index: 1;
+}
+
+.timeline-item:last-child::after {
+    display: none;
+}
+
+.timeline-content h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.timeline-content span {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+}
