@@ -188,33 +188,52 @@
 
             </main>
 
-            <!-- Draggable Bottom Sheet (Moved outside main to overlay header) -->
+            <!-- Draggable Bottom Sheet -->
             <div class="bottom-sheet" id="equipment-sheet">
                 <div class="sheet-handle-wrapper">
                     <div class="sheet-handle"></div>
                 </div>
 
-                <div class="sheet-header">
-                    <div class="summary-item">
-                        <span class="summary-label">전체 설비</span>
-                        <span class="summary-count" id="sheet-count-total">0</span>
-                    </div>
-                    <div class="divider-vertical"></div>
-                    <div class="summary-item safe">
-                        <span class="summary-label">정상 가동</span>
-                        <span class="summary-count" id="sheet-count-safe">0</span>
-                    </div>
-                    <div class="divider-vertical"></div>
-                    <div class="summary-item warning">
-                        <span class="summary-label">점검 및 위험</span>
-                        <span class="summary-count" id="sheet-count-warning">0</span>
-                    </div>
-                </div>
-
                 <div class="sheet-content">
-                    <h3 class="sheet-title">장비 목록 전체보기</h3>
-                    <div class="equipment-list" id="sheet-equipment-list">
-                        <!-- List items will be injected by JS -->
+                    <div class="sheet-top-section">
+                        <span class="sheet-sub-title"
+                            style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">실시간 전체 설비 효율 분석</span>
+                    </div>
+
+                    <div class="dashboard-container">
+                        <!-- Chart Section -->
+                        <div class="chart-section">
+                            <div class="donut-chart-wrapper">
+                                <div class="donut-chart" id="efficiency-chart"></div>
+                                <div class="chart-center-text">
+                                    <span class="chart-number" id="total-efficiency">0%</span>
+                                    <span class="chart-desc">평균 효율</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="stats-summary-grid">
+                            <div class="stat-box">
+                                <span class="stat-label">정상</span>
+                                <span class="stat-val safe" id="sheet-count-safe">0</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">주의</span>
+                                <span class="stat-val warning" id="sheet-count-warning">0</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">위험</span>
+                                <span class="stat-val danger" id="sheet-count-danger">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="list-section">
+                        <h3 class="list-section-title">장비별 상세 현황</h3>
+                        <div class="equipment-list-clean" id="sheet-equipment-list">
+                            <!-- Injected via JS -->
+                        </div>
                     </div>
                 </div>
             </div>

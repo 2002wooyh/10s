@@ -1949,8 +1949,8 @@ body {
     z-index: 3000;
     /* Ensure it's above everything including header */
 
-    /* Collapsed state: Show header (approx 250px) plus safe area */
-    transform: translateY(calc(100% - 250px - env(safe-area-inset-bottom)));
+    /* Collapsed state: Show header (approx 210px) plus safe area */
+    transform: translateY(calc(100% - 210px - env(safe-area-inset-bottom)));
 
     padding-bottom: env(safe-area-inset-bottom);
     transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
@@ -2074,4 +2074,204 @@ body {
 /* Remove previous banner styles */
 .summary-banner {
     display: none;
+}
+
+/* Bottom Sheet Branding & Layout Refinements */
+.sheet-content {
+    background: white;
+}
+
+.sheet-top-section {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.sheet-main-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 4px;
+}
+
+.sheet-sub-title {
+    font-family: var(--font-brand);
+    font-size: 0.9rem;
+    color: var(--text-sub);
+}
+
+/* Dashboard Container */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+/* Donut Chart */
+/* Inner white circle - REMOVED for Pie Chart */
+.donut-chart::after {
+    display: none;
+}
+
+/* Wrapper to stack Chart and Text */
+.donut-chart-wrapper {
+    position: relative;
+    width: 220px;
+    height: auto;
+    /* Allow height to grow for text */
+    display: flex;
+    flex-direction: column;
+    /* Stack chart and text */
+    align-items: center;
+    gap: 20px;
+}
+
+.donut-chart {
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: conic-gradient(var(--status-safe) 0% 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.chart-center-text {
+    position: static;
+    /* Flow naturally below chart */
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-number {
+    font-family: var(--font-brand);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1;
+}
+
+.chart-desc {
+    font-size: 1rem;
+    color: var(--text-sub);
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+/* Stats Summary Grid */
+.stats-summary-grid {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    width: 100%;
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-sub);
+    font-weight: 500;
+}
+
+.stat-val {
+    font-family: var(--font-brand);
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.stat-val.safe {
+    color: var(--status-safe);
+}
+
+.stat-val.warning {
+    color: var(--status-warning);
+}
+
+.stat-val.danger {
+    color: var(--status-danger);
+}
+
+/* Clean List Section */
+.list-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 16px;
+    padding-left: 4px;
+}
+
+.equipment-list-clean {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 60px;
+}
+
+.clean-list-item {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.clean-list-item:active {
+    background: #f0f0f0;
+}
+
+.clean-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.clean-item-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-main);
+}
+
+.clean-item-type {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    margin-left: 8px;
+    font-weight: 400;
+}
+
+.clean-item-score {
+    font-family: var(--font-brand);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+/* Progress Bar in List */
+.clean-item-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 100px;
+    overflow: hidden;
+}
+
+.clean-item-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.5s ease-out;
 }

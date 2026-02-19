@@ -192,47 +192,118 @@ const app = {
             },
 
             updateSummarySheet() {
-                const total = document.querySelectorAll('.equip-card').length;
-                const safe = document.querySelectorAll('.status-badge.safe').length;
-                const warning = document.querySelectorAll('.status-badge.warning').length;
-                const danger = document.querySelectorAll('.status-badge.danger').length;
+                // Determine counts and scores from DOM (or Data)
+                const cards = document.querySelectorAll('.equip-card');
+                const total = cards.length;
+                let safe = 0, warning = 0, danger = 0;
+                let totalScore = 0;
 
-                // Update Header Counts
-                const elTotal = document.getElementById('sheet-count-total');
+                cards.forEach(card => {
+                    const badge = card.querySelector('.status-badge');
+                    if (badge.classList.contains('safe')) safe++;
+                    else if (badge.classList.contains('warning')) warning++;
+                    else if (badge.classList.contains('danger')) danger++;
+
+                    // Mock score based on status for demo visualization
+                    // In real app, this would come from app.data.equipment
+                    if (badge.classList.contains('safe')) totalScore += 95;
+                    else if (badge.classList.contains('warning')) totalScore += 75;
+                    else if (badge.classList.contains('danger')) totalScore += 45;
+                });
+
+                const avgEfficiency = total > 0 ? Math.round(totalScore / total) : 0;
+
+                // Update Stats Grid
                 const elSafe = document.getElementById('sheet-count-safe');
                 const elWarning = document.getElementById('sheet-count-warning');
-
-                if (elTotal) elTotal.innerText = total;
+                const elDanger = document.getElementById('sheet-count-danger');
                 if (elSafe) elSafe.innerText = safe;
-                if (elWarning) {
-                    elWarning.innerText = warning + danger;
-                    elWarning.style.color = (danger > 0) ? 'var(--status-danger)' : 'var(--status-warning)';
+                if (elWarning) elWarning.innerText = warning;
+                if (elDanger) elDanger.innerText = danger;
+
+                // Update Average Text
+                const elTotalEff = document.getElementById('total-efficiency');
+                if (elTotalEff) elTotalEff.innerText = `${avgEfficiency}%`;
+
+                // Update Donut Chart Gradient
+                const chart = document.getElementById('efficiency-chart');
+                if (chart && total > 0) {
+                    const safePct = (safe / total) * 100;
+                    const warningPct = (warning / total) * 100;
+                    // danger is the rest
+
+                    // Conic Gradient Logic with visual gaps (white stops)
+                    // We add a tiny gap (e.g., 1 degree or 0.5%) between segments if they exist
+                    let gradientStr = `conic-gradient(`;
+
+                    // Start
+                    let currentPos = 0;
+
+                    // Safe Segment
+                    if (safe > 0) {
+                        gradientStr += `var(--status-safe) ${currentPos}% ${safePct - 1}%, transparent ${safePct - 1}% ${safePct}%`;
+                        currentPos += safePct;
+                        if (currentPos < 100) gradientStr += `, `;
+                    }
+
+                    // Warning Segment
+                    if (warning > 0) {
+                        gradientStr += `var(--status-warning) ${currentPos}% ${currentPos + warningPct - 1}%, transparent ${currentPos + warningPct - 1}% ${currentPos + warningPct}%`;
+                        currentPos += warningPct;
+                        if (currentPos < 100) gradientStr += `, `;
+                    }
+
+                    // Danger Segment
+                    if (danger > 0) {
+                        gradientStr += `var(--status-danger) ${currentPos}% ${currentPos + (100 - currentPos) - 0}%`;
+                        // No gap at extremely end needed, or maybe just close it
+                    }
+
+                    // Simple approach for robustness if gaps cause issues with small values:
+                    // Use hard stops but just white spacers
+                    chart.style.background = `conic-gradient(
+                        var(--status-safe) 0% ${safePct}%, 
+                        white ${safePct}% ${safePct + 1}%,
+                        var(--status-warning) ${safePct + 1}% ${safePct + warningPct}%, 
+                        white ${safePct + warningPct}% ${safePct + warningPct + 1}%,
+                        var(--status-danger) ${safePct + warningPct + 1}% 100%
+                    )`;
                 }
 
-                // Populate Equipment List (Clone from Cards)
+                // Populate Clean Equipment List
                 const listContainer = document.getElementById('sheet-equipment-list');
                 if (!listContainer) return;
 
                 listContainer.innerHTML = ''; // Clear existing
 
-                const cards = document.querySelectorAll('.equip-card');
                 cards.forEach(card => {
-                    const img = card.querySelector('img').src;
                     const name = card.querySelector('h3').innerText;
                     const type = card.querySelector('p').innerText;
-                    const statusText = card.querySelector('.status-badge').innerText;
-                    let statusClass = 'safe';
-                    if (card.querySelector('.status-badge.warning')) statusClass = 'warning';
-                    if (card.querySelector('.status-badge.danger')) statusClass = 'danger';
+                    const badge = card.querySelector('.status-badge');
+
+                    let score = 95;
+                    let colorVar = 'var(--status-safe)';
+                    if (badge.classList.contains('warning')) {
+                        score = 75;
+                        colorVar = 'var(--status-warning)';
+                    }
+                    if (badge.classList.contains('danger')) {
+                        score = 45;
+                        colorVar = 'var(--status-danger)';
+                    }
 
                     const itemHtml = `
-                        <div class="equipment-list-item" onclick="${card.getAttribute('onclick')}">
-                            <img src="${img}" class="list-item-thumb">
-                            <div class="list-item-info">
-                                <div class="list-item-name">${name}</div>
-                                <div class="list-item-type">${type}</div>
+                        <div class="clean-list-item" onclick="${card.getAttribute('onclick')}">
+                            <div class="clean-item-header">
+                                <div>
+                                    <span class="clean-item-name">${name}</span>
+                                    <span class="clean-item-type">${type}</span>
+                                </div>
+                                <span class="clean-item-score" style="color: ${colorVar}">${score}%</span>
                             </div>
-                            <div class="list-item-status ${statusClass}">${statusText}</div>
+                            <div class="clean-item-bar-bg">
+                                <div class="clean-item-bar-fill" style="width: ${score}%; background: ${colorVar}"></div>
+                            </div>
                         </div>
                     `;
                     listContainer.insertAdjacentHTML('beforeend', itemHtml);
@@ -241,106 +312,105 @@ const app = {
 
             initBottomSheet() {
                 const sheet = document.getElementById('equipment-sheet');
+                if (!sheet) return;
 
-                // Prevent duplicate initialization
-                if (!sheet || sheet.hasAttribute('data-initialized')) return;
-                sheet.setAttribute('data-initialized', 'true');
+                // Force re-initialization with v2 flag
+                if (sheet.hasAttribute('data-initialized-v2')) return;
+                sheet.setAttribute('data-initialized-v2', 'true');
 
+                const content = sheet.querySelector('.sheet-content');
                 const handle = sheet.querySelector('.sheet-handle-wrapper');
                 const header = sheet.querySelector('.sheet-header');
 
-                if (!sheet || !handle || !header) return;
-
-                let startY, currentY, initialTranslateY;
+                let startY;
                 let isDragging = false;
-                let isExpanded = false;
-                const collapsedTranslate = 'calc(100% - 250px)'; // Must match CSS
 
-                const onTouchStart = (e) => {
-                    // Only allow drag if touching handle or header
-                    // But if expanded, allow drag on header/handle only (content scrolls)
-                    const target = e.target;
-                    if (!handle.contains(target) && !header.contains(target)) return;
+                const isExpanded = () => sheet.classList.contains('expanded');
 
-                    isDragging = true;
-                    startY = e.touches[0].clientY;
-                    sheet.style.transition = 'none'; // Disable transition for direct follow
+                // Touch Start - Anywhere on sheet
+                sheet.addEventListener('touchstart', (e) => {
+                    const expanded = isExpanded();
+                    const isContent = content.contains(e.target);
+                    const scrollTop = content ? content.scrollTop : 0;
 
-                    // Get current transform value (approx)
-                    const style = window.getComputedStyle(sheet);
-                    const matrix = new WebKitCSSMatrix(style.transform);
-                    initialTranslateY = matrix.m42;
-                };
-
-                const onTouchMove = (e) => {
-                    if (!isDragging) return;
-                    e.preventDefault(); // Prevent page scroll
-                    currentY = e.touches[0].clientY;
-                    const deltaY = currentY - startY;
-
-                    // Calculate new position (clamped)
-                    // We need to map this to the sheet's logic. 
-                    // Simplified: just move it by delta
-                    // Note: This needs robust logic relative to state. 
-                    // For simplicity in this iteration, we use a threshold logic on end.
-                };
-
-                const onTouchEnd = (e) => {
-                    if (!isDragging) return;
-                    isDragging = false;
-                    sheet.style.transition = 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)';
-
-                    const deltaY = currentY - startY;
-
-                    // Threshold to toggle
-                    if (Math.abs(deltaY) > 50) {
-                        if (deltaY < 0 && !isExpanded) {
-                            // Dragged Up -> Expand
-                            sheet.classList.add('expanded');
-                            isExpanded = true;
-                        } else if (deltaY > 0 && isExpanded) {
-                            // Dragged Down -> Collapse
-                            sheet.classList.remove('expanded');
-                            isExpanded = false;
-                        }
-                    } else {
-                        // Revert if threshold not met (handled by CSS class state)
-                        if (isExpanded) sheet.classList.add('expanded');
-                        else sheet.classList.remove('expanded');
-                    }
-                };
-
-                // Attach events to handle and header
-                [handle, header].forEach(el => {
-                    el.addEventListener('touchstart', onTouchStart, { passive: false });
-                    el.addEventListener('touchmove', onTouchMove, { passive: false });
-                    el.addEventListener('touchend', onTouchEnd);
-
-                    // Mouse events for desktop testing
-                    el.addEventListener('mousedown', (e) => {
+                    if (!expanded) {
+                        // Collapsed: Swipe UP anywhere opens it
                         isDragging = true;
-                        startY = e.clientY;
-                    });
-
-                    window.addEventListener('mousemove', (e) => {
-                        if (!isDragging) return;
-                        currentY = e.clientY;
-                    });
-
-                    window.addEventListener('mouseup', (e) => {
-                        if (!isDragging) return;
-                        isDragging = false;
-                        const deltaY = currentY - startY;
-                        if (Math.abs(deltaY) > 50) {
-                            if (deltaY < 0 && !isExpanded) {
-                                sheet.classList.add('expanded');
-                                isExpanded = true;
-                            } else if (deltaY > 0 && isExpanded) {
-                                sheet.classList.remove('expanded');
-                                isExpanded = false;
+                    } else {
+                        // Expanded
+                        if (!isContent) {
+                            // Header/Handle: Always drag
+                            isDragging = true;
+                        } else {
+                            // Content: Only drag if at top
+                            if (scrollTop <= 0) {
+                                isDragging = true;
+                            } else {
+                                isDragging = false; // Allow internal scroll
                             }
                         }
-                    });
+                    }
+
+                    if (isDragging) {
+                        startY = e.touches[0].clientY;
+                    }
+                }, { passive: false });
+
+                // Touch Move
+                sheet.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+
+                    const currentY = e.touches[0].clientY;
+                    const deltaY = currentY - startY;
+                    const expanded = isExpanded();
+                    const isContent = content.contains(e.target);
+
+                    if (expanded && isContent) {
+                        // If moving UP (deltaY < 0), logic says scroll content down.
+                        // So we un-flag dragging to let native scroll take over? 
+                        // Actually, better to just return and let event bubble if it's a scroll.
+                        if (deltaY < 0) return;
+
+                        // If moving DOWN (deltaY > 0) and at top, we want to close.
+                        if (e.cancelable) e.preventDefault();
+                    } else {
+                        // Collapsed or Header -> Prevent page bounce
+                        if (e.cancelable) e.preventDefault();
+                    }
+                }, { passive: false });
+
+                // Touch End
+                sheet.addEventListener('touchend', (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+
+                    const currentY = e.changedTouches[0].clientY;
+                    const deltaY = currentY - startY;
+                    const expanded = isExpanded();
+
+                    if (Math.abs(deltaY) > 50) {
+                        if (deltaY < 0 && !expanded) {
+                            sheet.classList.add('expanded');
+                        } else if (deltaY > 0 && expanded) {
+                            sheet.classList.remove('expanded');
+                        }
+                    }
+                });
+
+                // Mouse (Simple)
+                sheet.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startY = e.clientY;
+                });
+                window.addEventListener('mouseup', (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    const deltaY = e.clientY - startY;
+                    const expanded = isExpanded();
+                    if (Math.abs(deltaY) > 50) {
+                        if (deltaY < 0 && !expanded) sheet.classList.add('expanded');
+                        else if (deltaY > 0 && expanded) sheet.classList.remove('expanded');
+                    }
                 });
             },
 
