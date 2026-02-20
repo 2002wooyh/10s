@@ -2177,20 +2177,25 @@ body {
 
 /* AI Chat Banner */
 .ai-banner {
-    width: 90%;
-    max-width: 400px;
+    width: 96%;
+    /* Maximize mobile width */
+    max-width: 600px;
+    /* Wider limit */
+    /* Much wider */
     background: white;
-    border-radius: 50px;
-    padding: 12px 20px;
+    border-radius: 60px;
+    padding: 15px 20px;
+    /* Reduced horizontal padding */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 0 auto 80px auto;
-    /* Increased spacing */
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-    /* Soft shadow */
+    margin: 0 auto 150px auto;
+    /* Much wider spacing */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    /* Stronger shadow */
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #f0f0f0;
 }
 
 .ai-banner:active {
@@ -2200,24 +2205,50 @@ body {
 .ai-banner-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
+    flex-grow: 1;
+    /* Allow input to expand */
 }
 
-.ai-icon {
-    font-family: 'Outfit', sans-serif;
-    /* Modern font for logo */
-    font-weight: 900;
-    font-style: italic;
-    font-size: 1.2rem;
-    color: var(--text-main);
-    /* Black */
+.ai-icon-donut {
+    width: 28px;
+    /* Slightly reduced */
+    height: 28px;
+    border-radius: 50%;
+    /* Smooth Natural Gradient */
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
 }
 
-.ai-text {
+/* Inner white hole */
+.ai-icon-donut::after {
+    content: '';
+    width: 12px;
+    /* Slightly reduced */
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+}
+
+.ai-input {
     font-family: var(--font-brand);
-    font-size: 0.95rem;
-    color: #999;
-    /* Placeholder text color */
+    font-size: 1.0rem;
+    color: var(--text-main);
+    border: none;
+    outline: none;
+    background: transparent;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+.ai-input::placeholder {
+    color: #bbb;
 }
 
 .ai-search-icon {
