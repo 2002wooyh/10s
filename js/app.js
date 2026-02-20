@@ -225,48 +225,17 @@ const app = {
                 const elTotalEff = document.getElementById('total-efficiency');
                 if (elTotalEff) elTotalEff.innerText = `${avgEfficiency}%`;
 
-                // Update Donut Chart Gradient
+                // Update Donut Chart Gradient (Gauge Style)
                 const chart = document.getElementById('efficiency-chart');
-                if (chart && total > 0) {
-                    const safePct = (safe / total) * 100;
-                    const warningPct = (warning / total) * 100;
-                    // danger is the rest
+                if (chart) {
+                    // Reset to 0% initially (animation will handle the rest)
+                    this.currentEfficiencyVal = avgEfficiency;
 
-                    // Conic Gradient Logic with visual gaps (white stops)
-                    // We add a tiny gap (e.g., 1 degree or 0.5%) between segments if they exist
-                    let gradientStr = `conic-gradient(`;
-
-                    // Start
-                    let currentPos = 0;
-
-                    // Safe Segment
-                    if (safe > 0) {
-                        gradientStr += `var(--status-safe) ${currentPos}% ${safePct - 1}%, transparent ${safePct - 1}% ${safePct}%`;
-                        currentPos += safePct;
-                        if (currentPos < 100) gradientStr += `, `;
-                    }
-
-                    // Warning Segment
-                    if (warning > 0) {
-                        gradientStr += `var(--status-warning) ${currentPos}% ${currentPos + warningPct - 1}%, transparent ${currentPos + warningPct - 1}% ${currentPos + warningPct}%`;
-                        currentPos += warningPct;
-                        if (currentPos < 100) gradientStr += `, `;
-                    }
-
-                    // Danger Segment
-                    if (danger > 0) {
-                        gradientStr += `var(--status-danger) ${currentPos}% ${currentPos + (100 - currentPos) - 0}%`;
-                        // No gap at extremely end needed, or maybe just close it
-                    }
-
-                    // Simple approach for robustness if gaps cause issues with small values:
-                    // Use hard stops but just white spacers
+                    // Initial state is empty
+                    const emptyColor = '#eee';
                     chart.style.background = `conic-gradient(
-                        var(--status-safe) 0% ${safePct}%, 
-                        white ${safePct}% ${safePct + 1}%,
-                        var(--status-warning) ${safePct + 1}% ${safePct + warningPct}%, 
-                        white ${safePct + warningPct}% ${safePct + warningPct + 1}%,
-                        var(--status-danger) ${safePct + warningPct + 1}% 100%
+                        var(--accent) 0% 0%, 
+                        ${emptyColor} 0% 100%
                     )`;
                 }
 
@@ -391,8 +360,12 @@ const app = {
                     if (Math.abs(deltaY) > 50) {
                         if (deltaY < 0 && !expanded) {
                             sheet.classList.add('expanded');
+                            // Trigger Animation
+                            this.animateChart(this.currentEfficiencyVal || 78);
                         } else if (deltaY > 0 && expanded) {
                             sheet.classList.remove('expanded');
+                            // Reset Animation
+                            this.animateChart(0);
                         }
                     }
                 });
@@ -408,8 +381,14 @@ const app = {
                     const deltaY = e.clientY - startY;
                     const expanded = isExpanded();
                     if (Math.abs(deltaY) > 50) {
-                        if (deltaY < 0 && !expanded) sheet.classList.add('expanded');
-                        else if (deltaY > 0 && expanded) sheet.classList.remove('expanded');
+                        if (deltaY < 0 && !expanded) {
+                            sheet.classList.add('expanded');
+                            this.animateChart(this.currentEfficiencyVal || 78);
+                        }
+                        else if (deltaY > 0 && expanded) {
+                            sheet.classList.remove('expanded');
+                            this.animateChart(0);
+                        }
                     }
                 });
             },
@@ -447,6 +426,54 @@ const app = {
                     const walk = (x - startX); // 1:1 movement (natural feel)
                     slider.scrollLeft = scrollLeft - walk;
                 });
+            },
+
+            // Animation helper
+            animateChart(targetPercent) {
+                const chart = document.getElementById('efficiency-chart');
+                if (!chart) return;
+
+                // Simple lerp animation
+                // We'll use a custom property on the element to track current state if needed, 
+                // or just a simple recursive frame loop.
+
+                const startPercent = parseFloat(chart.dataset.currentPercent || 0);
+                const startTime = performance.now();
+                const duration = 1500; // Slower, smoother
+
+                const animate = (time) => {
+                    const elapsed = time - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    // Ease out Quartic (Smoother)
+                    const ease = 1 - Math.pow(1 - progress, 4);
+
+                    const current = startPercent + (targetPercent - startPercent) * ease;
+
+                    chart.dataset.currentPercent = current;
+
+                    // Animate Text
+                    const textEl = document.getElementById('total-efficiency');
+                    if (textEl) {
+                        textEl.innerText = Math.round(current) + '%';
+                    }
+
+                    // Emotional Gradient: Sky Blue -> Vibrant Cyan
+                    const themeStart = '#4facfe';
+                    const themeEnd = '#00f2fe';
+                    const emptyColor = '#f0f0f0'; // Softer empty color
+
+                    chart.style.background = `conic-gradient(
+                        ${themeStart} 0%, 
+                        ${themeEnd} ${current}%, 
+                        ${emptyColor} ${current}% 100%
+                    )`;
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    }
+                };
+
+                requestAnimationFrame(animate);
             }
         },
 
