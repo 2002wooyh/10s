@@ -195,52 +195,63 @@
                 </div>
 
                 <div class="sheet-content">
-                    <div class="sheet-top-section">
-                        <span class="sheet-sub-title"
-                            style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">전체 설비 효율 현황</span>
-                    </div>
+                    <!-- Page 1: Main Dashboard -->
+                    <div class="sheet-section-main">
+                        <div class="sheet-top-section">
+                            <span class="sheet-sub-title"
+                                style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">전체 설비 효율 현황</span>
+                        </div>
 
-                    <div class="dashboard-container">
-                        <!-- Chart Section -->
-                        <div class="chart-section">
-                            <div class="donut-chart-wrapper">
-                                <div class="donut-chart" id="efficiency-chart"></div>
-                                <div class="chart-center-text">
-                                    <span class="chart-number" id="total-efficiency">0%</span>
+                        <div class="dashboard-container">
+                            <!-- Chart Section -->
+                            <div class="chart-section">
+                                <div class="donut-chart-wrapper">
+                                    <div class="donut-chart" id="efficiency-chart"></div>
+                                    <div class="chart-center-text">
+                                        <span class="chart-number" id="total-efficiency">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stats Grid -->
+                            <div class="stats-summary-grid">
+                                <div class="stat-box">
+                                    <span class="stat-label">정상</span>
+                                    <span class="stat-val safe" id="sheet-count-safe">0</span>
+                                </div>
+                                <div class="stat-box">
+                                    <span class="stat-label">주의</span>
+                                    <span class="stat-val warning" id="sheet-count-warning">0</span>
+                                </div>
+                                <div class="stat-box">
+                                    <span class="stat-label">위험</span>
+                                    <span class="stat-val danger" id="sheet-count-danger">0</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Stats Grid -->
-                        <div class="stats-summary-grid">
-                            <div class="stat-box">
-                                <span class="stat-label">정상</span>
-                                <span class="stat-val safe" id="sheet-count-safe">0</span>
+                        <!-- AI Chat Banner -->
+                        <div class="ai-banner">
+                            <div class="ai-banner-left">
+                                <div class="ai-icon-donut"></div>
+                                <input type="text" class="ai-input" placeholder="설비 효율을 올리고 싶어요.">
                             </div>
-                            <div class="stat-box">
-                                <span class="stat-label">주의</span>
-                                <span class="stat-val warning" id="sheet-count-warning">0</span>
-                            </div>
-                            <div class="stat-box">
-                                <span class="stat-label">위험</span>
-                                <span class="stat-val danger" id="sheet-count-danger">0</span>
-                            </div>
+                            <i class="fa-solid fa-magnifying-glass ai-search-icon"></i>
+                        </div>
+
+                        <!-- Scroll Hint (Optional, gives user clue) -->
+                        <div class="scroll-hint">
+                            <i class="fa-solid fa-chevron-down"></i>
                         </div>
                     </div>
 
-                    <!-- AI Chat Banner -->
-                    <div class="ai-banner">
-                        <div class="ai-banner-left">
-                            <div class="ai-icon-donut"></div>
-                            <input type="text" class="ai-input" placeholder="설비 효율을 올리고 싶어요.">
-                        </div>
-                        <i class="fa-solid fa-magnifying-glass ai-search-icon"></i>
-                    </div>
-
-                    <div class="list-section">
-                        <h3 class="list-section-title">장비별 상세 현황</h3>
-                        <div class="equipment-list-clean" id="sheet-equipment-list">
-                            <!-- Injected via JS -->
+                    <!-- Page 2: Detailed List -->
+                    <div class="sheet-section-details">
+                        <div class="list-section">
+                            <h3 class="list-section-title">장비별 상세 현황</h3>
+                            <div class="equipment-list-clean" id="sheet-equipment-list">
+                                <!-- Injected via JS -->
+                            </div>
                         </div>
                     </div>
                 </div>

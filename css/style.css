@@ -2184,24 +2184,69 @@ body {
     font-weight: 600;
 }
 
-/* AI Chat Banner */
+/* Page Layout for Bottom Sheet */
+.sheet-section-main {
+    min-height: 85vh;
+    /* Occupy most of the screen */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* Center content vertically */
+    align-items: center;
+    padding-bottom: 40px;
+    position: relative;
+}
+
+.sheet-section-details {
+    padding-top: 40px;
+    min-height: 50vh;
+    /* Ensure it has height */
+    padding-bottom: 100px;
+}
+
+.scroll-hint {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ccc;
+    animation: bounce 2s infinite;
+    font-size: 1.2rem;
+    opacity: 0.7;
+}
+
+@keyframes bounce {
+
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+        transform: translateX(-50%) translateY(0);
+    }
+
+    40% {
+        transform: translateX(-50%) translateY(-10px);
+    }
+
+    60% {
+        transform: translateX(-50%) translateY(-5px);
+    }
+}
+
+/* Reset Banner Margin since we use flex spacing now */
 .ai-banner {
     width: 96%;
-    /* Maximize mobile width */
     max-width: 600px;
-    /* Wider limit */
-    /* Much wider */
     background: white;
     border-radius: 60px;
     padding: 15px 20px;
-    /* Reduced horizontal padding */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 0 auto 220px auto;
-    /* Much wider spacing */
+    margin: 40px auto 0 auto;
+    /* Reduced margin, handled by container */
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-    /* Stronger shadow */
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     border: 1px solid #f0f0f0;
