@@ -2097,6 +2097,8 @@ body {
 .sheet-top-section {
     text-align: center;
     margin-bottom: 24px;
+    margin-top: 40px;
+    /* Added margin to push title down */
 }
 
 .sheet-main-title {
@@ -2224,10 +2226,9 @@ body {
 }
 
 .scroll-hint {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: static;
+    margin-top: 10px;
+    transform: none;
     color: #ccc;
     animation: bounce 2s infinite;
     font-size: 1.2rem;
