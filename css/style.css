@@ -2198,6 +2198,8 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    padding-bottom: 120px;
+    /* Increased to clear bottom nav */
     position: relative;
     scroll-snap-align: start;
     /* Snap point */
