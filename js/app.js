@@ -227,15 +227,17 @@ const app = {
 
                 // Update Donut Chart Gradient (Gauge Style)
                 const chart = document.getElementById('efficiency-chart');
-                if (chart) {
-                    // Reset to 0% initially (animation will handle the rest)
-                    this.currentEfficiencyVal = avgEfficiency;
+                if (chart && total > 0) {
+                    const safePct = (safe / total) * 100;
+                    const warningPct = (warning / total) * 100;
+                    // danger is the rest (implicit in the final slice)
 
-                    // Initial state is empty
-                    const emptyColor = '#eee';
+                    // Conic Gradient Logic: Safe -> Warning -> Danger
+                    // Solid Pie Chart (No Gaps, No Animation trickery for now, just reliable render)
                     chart.style.background = `conic-gradient(
-                        var(--accent) 0% 0%, 
-                        ${emptyColor} 0% 100%
+                        var(--status-safe) 0% ${safePct}%, 
+                        var(--status-warning) ${safePct}% ${safePct + warningPct}%, 
+                        var(--status-danger) ${safePct + warningPct}% 100%
                     )`;
                 }
 
