@@ -2263,8 +2263,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 40px auto 0 auto;
-    /* Reduced margin, handled by container */
+    margin: 40px auto 50px auto;
+    /* Added bottom margin to push up */
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
