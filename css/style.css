@@ -2002,9 +2002,13 @@ body {
 .sheet-content {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 24px 24px 100px 24px;
-    /* Reduced bottom padding */
-    background: white;
+    padding: 0;
+    /* Remove padding to let sections handle it */
+    height: 85vh;
+    /* Fixed height for scrolling */
+    scroll-snap-type: y mandatory;
+    /* Enable snapping */
+    scroll-behavior: smooth;
 }
 
 .sheet-title {
@@ -2185,23 +2189,36 @@ body {
 }
 
 /* Page Layout for Bottom Sheet */
+/* Page Layout for Bottom Sheet */
 .sheet-section-main {
-    min-height: 85vh;
-    /* Occupy most of the screen */
+    height: 100%;
+    /* Force full height of container */
+    width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    /* Center content vertically */
     align-items: center;
-    padding-bottom: 40px;
     position: relative;
+    scroll-snap-align: start;
+    /* Snap point */
+    scroll-snap-stop: always;
+    /* Force stop */
+    overflow: hidden;
+    /* Prevent spillover */
 }
 
 .sheet-section-details {
-    padding-top: 40px;
-    min-height: 50vh;
-    /* Ensure it has height */
-    padding-bottom: 100px;
+    height: 100%;
+    /* Full height for second page */
+    width: 100%;
+    padding: 40px 24px 100px 24px;
+    /* Add padding here */
+    scroll-snap-align: start;
+    /* Snap point */
+    scroll-snap-stop: always;
+    /* Force stop */
+    overflow-y: auto;
+    /* Allow internal scrolling if needed */
 }
 
 .scroll-hint {
