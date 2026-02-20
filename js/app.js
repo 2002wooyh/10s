@@ -555,121 +555,276 @@ const app = {
             render(data) {
                 const container = document.getElementById('report-content');
 
-                // Color logic for status (Modern Minimalist)
-                let statusColor = 'var(--success)';
-                let statusText = '최고 (Excellent)';
-                let statusBg = 'rgba(16, 185, 129, 0.1)';
+                // Emotional Theme Colors
+                let themeColor = 'var(--accent)'; // Default Blue
+                let themeSoft = 'rgba(93, 156, 236, 0.15)';
+                let statusText = '최적의 상태';
+                let statusSub = '완벽한 상태입니다';
+                let startColor = '#4facfe'; // Blue
+                let endColor = '#00f2fe';   // Cyan
 
                 if (data.healthScore < 80) {
-                    statusColor = 'var(--danger)';
-                    statusText = '경고 (Warning)';
-                    statusBg = 'rgba(239, 68, 68, 0.1)';
-                }
-                else if (data.healthScore < 90) {
-                    statusColor = 'var(--warning)';
-                    statusText = '주의 (Attention)';
-                    statusBg = 'rgba(245, 158, 11, 0.1)';
+                    themeColor = '#ff6b6b'; // Red
+                    themeSoft = 'rgba(255, 107, 107, 0.15)';
+                    statusText = '심각한 위험';
+                    statusSub = '점검이 시급합니다';
+                    startColor = '#ff9a9e';
+                    endColor = '#fecfef';
+                } else if (data.healthScore < 90) {
+                    themeColor = '#fbc02d'; // Yellow
+                    themeSoft = 'rgba(251, 192, 45, 0.15)';
+                    statusText = '점검 필요';
+                    statusSub = '주의가 필요합니다';
+                    startColor = '#f6d365';
+                    endColor = '#fda085';
                 }
 
-                // Components List (Clean & Professional)
+                // Components HTML (Biosignal Lines)
                 let componentHtml = '';
-                data.components.forEach(comp => {
-                    let color = 'var(--accent)';
-                    if (comp.health < 40) color = 'var(--danger)';
-                    else if (comp.health < 70) color = 'var(--warning)';
+                data.components.forEach((comp, index) => {
+                    let compColor = themeColor;
+                    if (comp.health < 40) compColor = '#ff6b6b';
 
                     componentHtml += `
-                        <div class="modern-row">
-                            <div class="row-info">
-                                <span class="row-name">${comp.name}</span>
-                                <span class="row-sub">교체 권장: ${comp.replaceIn}</span>
+                        <div class="bio-row" style="animation-delay: ${0.2 + (index * 0.1)}s">
+                            <div class="bio-info">
+                                <span class="bio-name">${comp.name}</span>
+                                <span class="bio-status">${comp.replaceIn} 교체 권장</span>
                             </div>
-                            <div class="row-stat">
-                                <div class="stat-bar-bg">
-                                    <div class="stat-bar-fill" style="width: ${comp.health}%; background: ${color}"></div>
+                            <div class="bio-visual">
+                                <div class="bio-line-bg">
+                                    <div class="bio-line-fill" style="width: ${comp.health}%; background: ${compColor}; box-shadow: 0 0 10px ${compColor};"></div>
                                 </div>
-                                <span class="stat-text" style="color: ${color}">${comp.health}%</span>
+                                <span class="bio-score" style="color: ${compColor}">${comp.health}%</span>
                             </div>
                         </div>
                     `;
                 });
 
-                // History Timeline (Vertical & Clean)
+                // Timeline HTML
                 let historyHtml = '';
                 data.history.forEach((hist, index) => {
                     historyHtml += `
-                        <div class="modern-timeline-item">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-data">
-                                <span class="timeline-date">${hist.date}</span>
-                                <span class="timeline-desc">${hist.type} · ${hist.result}</span>
+                        <div class="story-item" style="animation-delay: ${0.5 + (index * 0.1)}s">
+                            <div class="story-dot" style="background: ${themeColor}"></div>
+                            <div class="story-content">
+                                <span class="story-date">${hist.date}</span>
+                                <span class="story-desc">${hist.type} · ${hist.result}</span>
                             </div>
                         </div>
                     `;
                 });
 
-                const html = `
-                    <div class="modern-nav">
-                        <button onclick="app.router.navigate('home')" class="nav-btn"><i class="fa-solid fa-arrow-left"></i></button>
-                        <span class="nav-title">상세 리포트</span>
-                        <div style="width: 40px;"></div> <!-- Spacer -->
-                    </div>
+                // Determine Badge Class & Text
+                let badgeClass = 'safe';
+                let badgeText = '정상';
 
-                    <div class="modern-content">
+                if (data.healthScore < 80) {
+                    badgeClass = 'danger';
+                    badgeText = '위험';
+                } else if (data.healthScore < 90) {
+                    badgeClass = 'warning';
+                    badgeText = '주의';
+                }
+
+                // --- Page 1: Overview (Hero + Score + Comment) ---
+                const page1Html = `
+                    <div class="report-page" id="report-page-1">
                         <!-- Hero Section -->
-                        <div class="modern-hero">
-                            <div class="hero-image-container">
-                                <img src="${data.image}" alt="${data.name}" class="modern-img">
+                        <div class="emotional-hero">
+                             <div class="floating-image-wrapper">
+                                <img src="${data.image}" alt="${data.name}" class="floating-image">
+                                <span class="status-badge ${badgeClass}">${badgeText}</span>
                             </div>
-                            <div class="hero-header">
-                                <div class="header-top">
-                                    <span class="equipment-type">${data.type}</span>
-                                    <span class="status-badge" style="background: ${statusBg}; color: ${statusColor}">${statusText}</span>
+                            <div class="hero-text">
+                                <h1 class="hero-title" style="font-size: 1.8rem; margin-bottom: 4px;">${data.name}</h1>
+                                <span class="hero-category" style="font-size: 1rem; color: var(--text-sub);">${data.type}</span>
+                                
+                                <!-- Emotional Donut Gauge -->
+                                <div class="soul-ring-wrapper" style="margin: 15px auto; position: relative; width: 180px; height: 180px;">
+                                    <svg class="soul-ring" width="180" height="180" viewBox="0 0 220 220" style="transform: rotate(-90deg);">
+                                        <defs>
+                                            <linearGradient id="emotionalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" style="stop-color: #4facfe; stop-opacity: 1" />
+                                                <stop offset="100%" style="stop-color: #00f2fe; stop-opacity: 1" />
+                                            </linearGradient>
+                                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                                                <feMerge>
+                                                    <feMergeNode in="coloredBlur" />
+                                                    <feMergeNode in="SourceGraphic" />
+                                                </feMerge>
+                                            </filter>
+                                        </defs>
+                                        <!-- Background Ring -->
+                                        <circle cx="110" cy="110" r="90" fill="transparent" stroke="#f0f2f5" stroke-width="20" stroke-linecap="round"></circle>
+                                        <!-- Progress Ring -->
+                                        <circle id="emotional-gauge-progress" cx="110" cy="110" r="90" fill="transparent" stroke="url(#emotionalGradient)" stroke-width="20" stroke-linecap="round" 
+                                            style="stroke-dasharray: ${2 * Math.PI * 90}; stroke-dashoffset: ${2 * Math.PI * 90}; filter: url(#glow); transition: stroke-dashoffset 1.5s ease-out;"></circle>
+                                    </svg>
+                                    <div class="soul-score" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                                        <span id="emotional-score-value" class="score-val" style="font-size: 3.2rem; font-weight: 700; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -2px;">0</span>
+                                        <span class="score-label" style="display: block; font-size: 0.85rem; color: #888; font-weight: 500; margin-top: -5px;">AI 진단 점수</span>
+                                    </div>
+                                    <script>
+                                        setTimeout(() => {
+                                            const targetScore = ${data.healthScore};
+                                            const circumference = 2 * Math.PI * 90;
+                                            const offset = circumference * (1 - targetScore / 100);
+                                            
+                                            // Animate Gauge
+                                            document.getElementById('emotional-gauge-progress').style.strokeDashoffset = offset;
+                                            
+                                            // Animate Score Counter
+                                            const scoreElement = document.getElementById('emotional-score-value');
+                                            let currentScore = 0;
+                                            const duration = 1500; // 1.5s
+                                            const startTime = performance.now();
+                                            
+                                            function updateScore(currentTime) {
+                                                const elapsed = currentTime - startTime;
+                                                const progress = Math.min(elapsed / duration, 1);
+                                                
+                                                // Ease-out function
+                                                const easeOut = 1 - Math.pow(1 - progress, 3);
+                                                
+                                                currentScore = Math.floor(easeOut * targetScore);
+                                                scoreElement.innerText = currentScore;
+                                                
+                                                if (progress < 1) {
+                                                    requestAnimationFrame(updateScore);
+                                                } else {
+                                                    scoreElement.innerText = targetScore;
+                                                }
+                                            }
+                                            requestAnimationFrame(updateScore);
+                                        }, 300); // Start after 300ms delay
+                                    </script>
                                 </div>
-                                <h1 class="equipment-name">${data.name}</h1>
                             </div>
                         </div>
 
-                        <!-- Key Metrics Card -->
-                        <div class="modern-card">
-                            <h3 class="card-title">핵심 진단 지표</h3>
-                            <div class="metrics-row">
-                                <div class="metric-item">
-                                    <span class="m-label">종합 점수</span>
-                                    <span class="m-value" style="color: ${statusColor}">${data.healthScore}</span>
+                        <!-- Scroll Hint -->
+                           <div style="margin-top: auto; margin-bottom: 40px; text-align: center; color: #ccc; animation: bounce 2s infinite;">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                    </div>
+                `;
+
+                // --- Page 2: Detailed Analysis (Gauge + Metrics + Graphs) ---
+
+                // Mock Data for Graphs
+                const mockGraphWave = `M0,50 Q10,40 20,50 T40,50 T60,50 T80,50 T100,50 T120,50 T140,50 T160,50 T180,50 T200,50 T220,50 T240,50 T260,50 T280,50 T300,50`;
+                const wavePath = "M0,30 Q20,10 40,30 T80,30 T120,30 T160,30 T200,30 T240,30 T280,30 T320,30";
+
+                // Bars for FFT
+                let fftBars = '';
+                for (let i = 0; i < 30; i++) {
+                    let h = Math.random() * 40 + 10;
+                    if (data.healthScore < 80 && i > 25) h += 40; // High freq anomaly
+                    fftBars += `<rect x="${i * 10}" y="${100 - h}" width="6" height="${h}" fill="${themeColor}" opacity="0.6" rx="2" />`;
+                }
+
+                const page2Html = `
+                    <div class="report-page" id="report-page-2">
+                        <!-- Soul Gauge Section (Refactored: Side-by-Side) -->
+                        <div class="soul-gauge-section" style="margin-top: 0; padding-top: 0; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 40px; padding-left: 20px;">
+                            <!-- Left: Gauge -->
+                            <div class="soul-ring-wrapper">
+                                <svg class="soul-ring" width="160" height="160">
+                                    <circle class="soul-ring-bg" stroke="#eee" stroke-width="8" fill="transparent" r="70" cx="80" cy="80"></circle>
+                                    <circle class="soul-ring-progress" stroke="${themeColor}" stroke-width="8" fill="transparent" r="70" cx="80" cy="80"
+                                        style="stroke-dasharray: 440; stroke-dashoffset: ${440 - (440 * data.healthScore / 100)};"></circle>
+                                </svg>
+                                <div class="soul-score">
+                                    <span class="score-val" style="color: ${themeColor}">${data.healthScore}</span>
+                                    <span class="score-label">AI 진단 점수</span>
                                 </div>
-                                <div class="metric-divider"></div>
-                                <div class="metric-item">
-                                    <span class="m-label">잔여 수명</span>
-                                    <span class="m-value">${data.lifespan}<span class="unit">년</span></span>
+                            </div>
+                            
+                            <!-- Right: Metrics (Vertical Layout for Side) -->
+                            <div class="soul-metrics" style="flex-direction: column; gap: 20px; align-items: flex-start;">
+                                <div class="s-metric" style="text-align: left;">
+                                    <span class="sm-label" style="font-size: 0.9rem;">효율</span>
+                                    <span class="sm-val" style="font-size: 1.4rem;">${data.efficiency}%</span>
                                 </div>
-                                <div class="metric-divider"></div>
-                                <div class="metric-item">
-                                    <span class="m-label">효율</span>
-                                    <span class="m-value">${data.efficiency}<span class="unit">%</span></span>
+                                <div class="sm-divider" style="width: 100%; height: 1px; background: rgba(0,0,0,0.05);"></div>
+                                <div class="s-metric" style="text-align: left;">
+                                    <span class="sm-label" style="font-size: 0.9rem;">수명</span>
+                                    <span class="sm-val" style="font-size: 1.4rem;">${data.lifespan}년</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Components Card -->
-                        <div class="modern-card">
-                            <h3 class="card-title">부품별 상세 진단</h3>
-                            <div class="rows-container">
-                                ${componentHtml}
+                        <div class="glass-panel">
+                            <!-- Title Removed as requested -->
+                            
+                            <!-- Graph 1: Time Domain -->
+                            <div class="graph-box" style="margin-bottom: 20px;">
+                                <span class="graph-label">주파수 파형 (Time Domain)</span>
+                                <svg width="100%" height="80" viewBox="0 0 320 80" style="background: rgba(0,0,0,0.02); border-radius: 12px;">
+                                    <path d="${wavePath}" fill="none" stroke="${themeColor}" stroke-width="2" />
+                                </svg>
+                            </div>
+
+                            <!-- Graph 2: FFT -->
+                            <div class="graph-box" style="margin-bottom: 20px;">
+                                <span class="graph-label">주파수 스펙트럼 (FFT)</span>
+                                <svg width="100%" height="100" viewBox="0 0 300 100" style="background: rgba(0,0,0,0.02); border-radius: 12px;">
+                                    ${fftBars}
+                                </svg>
+                            </div>
+
+                            <!-- Anomalies -->
+                            <div class="anomaly-box">
+                                <span class="graph-label">감지된 이상 주파수</span>
+                                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                    ${data.healthScore < 90 ?
+                        `<span class="status-badge danger" style="position: relative; top:0; left:0; display: inline-block;">1.2kHz (베어링)</span>
+                                         <span class="status-badge warning" style="position: relative; top:0; left:0; display: inline-block;">60Hz (전원)</span>`
+                        : `<span class="status-badge safe" style="position: relative; top:0; left:0; display: inline-block; background: #E3F2FD; color: #5D9CEC;">이상 없음</span>`
+                    }
+                                </div>
                             </div>
                         </div>
+                    </div>
+                `;
 
-                        <!-- History Card -->
-                        <div class="modern-card">
-                            <h3 class="card-title">최근 점검 이력</h3>
-                            <div class="timeline-container">
+                // --- Page 3: Components & History ---
+                const page3Html = `
+                    <div class="report-page" id="report-page-3">
+                         <div class="glass-panel" style="margin-top: 20px;">
+                            <h3 class="panel-title">부품별 상태</h3>
+                            ${componentHtml}
+                        </div>
+
+                        <div class="glass-panel">
+                            <h3 class="panel-title">최근 점검 내역</h3>
+                            <div class="story-line">
                                 ${historyHtml}
                             </div>
                         </div>
-                        
-                        <button class="btn-modern-action" onclick="app.router.navigate('home')">
-                            확인 완료
-                        </button>
+                         <!-- End message -->
+                        <div style="text-align: center; margin-top: 40px; opacity: 0.5;">
+                            <p style="font-size: 0.9rem;">리포트의 끝입니다.</p>
+                        </div>
+                    </div>
+                `;
+
+                const html = `
+                    <div class="emotional-container">
+                        <!-- Fixed Nav -->
+                        <div class="emotional-nav">
+                            <button onclick="app.router.navigate('management')"><i class="fa-solid fa-chevron-left"></i></button>
+                            <span class="nav-title">AI 분석 리포트</span>
+                        </div>
+
+                        <!-- Scroll Snap Container -->
+                        <div class="report-scroll-container">
+                            ${page1Html}
+                            ${page2Html}
+                            ${page3Html}
+                        </div>
                     </div>
                 `;
 
