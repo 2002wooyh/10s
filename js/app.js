@@ -280,303 +280,305 @@ const app = {
                 this.initListObserver();
             },
 
-        },
 
-        // Observer for List Animation because user wants "scroll" trigger
-        initListObserver() {
-            const options = {
-                root: document.querySelector('.sheet-content'),
-                threshold: 0.1
-            };
 
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const item = entry.target;
-                        if (item.classList.contains('played')) return; // Already played
+            // Observer for List Animation because user wants "scroll" trigger
+            initListObserver() {
+                const options = {
+                    root: document.querySelector('.sheet-content'),
+                    threshold: 0.1
+                };
 
-                        item.classList.add('played');
-                        const targetScore = parseInt(item.dataset.score);
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const item = entry.target;
+                            if (item.classList.contains('played')) return; // Already played
 
-                        // Animate Bar
-                        const bar = item.querySelector('.clean-item-bar-fill');
-                        bar.style.width = targetScore + '%';
-                        bar.style.transition = 'width 1.2s cubic-bezier(0.22, 1, 0.36, 1)';
+                            item.classList.add('played');
+                            const targetScore = parseInt(item.dataset.score);
 
-                        // Animate Number
-                        const scoreEl = item.querySelector('.clean-item-score');
-                        this.animateNumber(scoreEl, 0, targetScore, 1200);
-                    }
+                            // Animate Bar
+                            const bar = item.querySelector('.clean-item-bar-fill');
+                            bar.style.width = targetScore + '%';
+                            bar.style.transition = 'width 1.2s cubic-bezier(0.22, 1, 0.36, 1)';
+
+                            // Animate Number
+                            const scoreEl = item.querySelector('.clean-item-score');
+                            this.animateNumber(scoreEl, 0, targetScore, 1200);
+                        }
+                    });
+                }, options);
+
+                const items = document.querySelectorAll('.clean-list-item');
+                items.forEach(item => observer.observe(item));
+            },
+
+            animateNumber(el, start, end, duration) {
+                const startTime = performance.now();
+                const animate = (time) => {
+                    const elapsed = time - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    // Ease out Quartic
+                    const ease = 1 - Math.pow(1 - progress, 4);
+                    const current = Math.round(start + (end - start) * ease);
+                    el.innerText = current + '%';
+
+                    if (progress < 1) requestAnimationFrame(animate);
+                };
+                requestAnimationFrame(animate);
+            },
+
+            resetEquipmentList() {
+                const items = document.querySelectorAll('.clean-list-item');
+                items.forEach(item => {
+                    item.classList.remove('played');
+                    // Reset Bar
+                    const bar = item.querySelector('.clean-item-bar-fill');
+                    bar.style.transition = 'none'; // Instant reset
+                    bar.style.width = '0%';
+
+                    // Reset Number
+                    const scoreEl = item.querySelector('.clean-item-score');
+                    scoreEl.innerText = '0%';
                 });
-            }, options);
+            },
 
-            const items = document.querySelectorAll('.clean-list-item');
-            items.forEach(item => observer.observe(item));
-        },
+            initBottomSheet() {
+                const sheet = document.getElementById('equipment-sheet');
+                if (!sheet) return;
 
-        animateNumber(el, start, end, duration) {
-            const startTime = performance.now();
-            const animate = (time) => {
-                const elapsed = time - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                // Ease out Quartic
-                const ease = 1 - Math.pow(1 - progress, 4);
-                const current = Math.round(start + (end - start) * ease);
-                el.innerText = current + '%';
+                // Force re-initialization with v2 flag
+                if (sheet.hasAttribute('data-initialized-v2')) return;
+                sheet.setAttribute('data-initialized-v2', 'true');
 
-                if (progress < 1) requestAnimationFrame(animate);
-            };
-            requestAnimationFrame(animate);
-        },
+                const content = sheet.querySelector('.sheet-content');
+                const handle = sheet.querySelector('.sheet-handle-wrapper');
+                const header = sheet.querySelector('.sheet-header');
 
-        resetEquipmentList() {
-            const items = document.querySelectorAll('.clean-list-item');
-            items.forEach(item => {
-                item.classList.remove('played');
-                // Reset Bar
-                const bar = item.querySelector('.clean-item-bar-fill');
-                bar.style.transition = 'none'; // Instant reset
-                bar.style.width = '0%';
+                let startY;
+                let isDragging = false;
 
-                // Reset Number
-                const scoreEl = item.querySelector('.clean-item-score');
-                scoreEl.innerText = '0%';
-            });
-        },
+                const isExpanded = () => sheet.classList.contains('expanded');
 
-        initBottomSheet() {
-            const sheet = document.getElementById('equipment-sheet');
-            if (!sheet) return;
+                // Touch Start - Anywhere on sheet
+                sheet.addEventListener('touchstart', (e) => {
+                    const expanded = isExpanded();
+                    const isContent = content.contains(e.target);
+                    const scrollTop = content ? content.scrollTop : 0;
 
-            // Force re-initialization with v2 flag
-            if (sheet.hasAttribute('data-initialized-v2')) return;
-            sheet.setAttribute('data-initialized-v2', 'true');
-
-            const content = sheet.querySelector('.sheet-content');
-            const handle = sheet.querySelector('.sheet-handle-wrapper');
-            const header = sheet.querySelector('.sheet-header');
-
-            let startY;
-            let isDragging = false;
-
-            const isExpanded = () => sheet.classList.contains('expanded');
-
-            // Touch Start - Anywhere on sheet
-            sheet.addEventListener('touchstart', (e) => {
-                const expanded = isExpanded();
-                const isContent = content.contains(e.target);
-                const scrollTop = content ? content.scrollTop : 0;
-
-                if (!expanded) {
-                    // Collapsed: Swipe UP anywhere opens it
-                    isDragging = true;
-                } else {
-                    // Expanded
-                    if (!isContent) {
-                        // Header/Handle: Always drag
+                    if (!expanded) {
+                        // Collapsed: Swipe UP anywhere opens it
                         isDragging = true;
                     } else {
-                        // Content: Only drag if at top
-                        if (scrollTop <= 0) {
+                        // Expanded
+                        if (!isContent) {
+                            // Header/Handle: Always drag
                             isDragging = true;
                         } else {
-                            isDragging = false; // Allow internal scroll
+                            // Content: Only drag if at top
+                            if (scrollTop <= 0) {
+                                isDragging = true;
+                            } else {
+                                isDragging = false; // Allow internal scroll
+                            }
                         }
                     }
-                }
 
-                if (isDragging) {
-                    startY = e.touches[0].clientY;
-                }
-            }, { passive: false });
-
-            // Touch Move
-            sheet.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-
-                const currentY = e.touches[0].clientY;
-                const deltaY = currentY - startY;
-                const expanded = isExpanded();
-                const isContent = content.contains(e.target);
-
-                if (expanded && isContent) {
-                    // If moving UP (deltaY < 0), logic says scroll content down.
-                    // So we un-flag dragging to let native scroll take over? 
-                    // Actually, better to just return and let event bubble if it's a scroll.
-                    if (deltaY < 0) return;
-
-                    // If moving DOWN (deltaY > 0) and at top, we want to close.
-                    if (e.cancelable) e.preventDefault();
-                } else {
-                    // Collapsed or Header -> Prevent page bounce
-                    if (e.cancelable) e.preventDefault();
-                }
-            }, { passive: false });
-
-            // Touch End
-            sheet.addEventListener('touchend', (e) => {
-                if (!isDragging) return;
-                isDragging = false;
-
-                const currentY = e.changedTouches[0].clientY;
-                const deltaY = currentY - startY;
-                const expanded = isExpanded();
-
-                if (Math.abs(deltaY) > 50) {
-                    if (deltaY < 0 && !expanded) {
-                        sheet.classList.add('expanded');
-                        // Trigger Animation
-                        this.animateChart(this.currentEfficiencyVal || 78);
-                    } else if (deltaY > 0 && expanded) {
-                        sheet.classList.remove('expanded');
-                        // Reset Animation
-                        this.animateChart(0);
+                    if (isDragging) {
+                        startY = e.touches[0].clientY;
                     }
-                }
-            });
+                }, { passive: false });
 
-            // Mouse (Simple)
-            sheet.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                startY = e.clientY;
-            });
-            window.addEventListener('mouseup', (e) => {
-                if (!isDragging) return;
-                isDragging = false;
-                const deltaY = e.clientY - startY;
-                const expanded = isExpanded();
-                if (Math.abs(deltaY) > 50) {
-                    if (deltaY < 0 && !expanded) {
-                        sheet.classList.add('expanded');
-                        this.animateChart(this.currentEfficiencyVal || 78);
+                // Touch Move
+                sheet.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+
+                    const currentY = e.touches[0].clientY;
+                    const deltaY = currentY - startY;
+                    const expanded = isExpanded();
+                    const isContent = content.contains(e.target);
+
+                    if (expanded && isContent) {
+                        // If moving UP (deltaY < 0), logic says scroll content down.
+                        // So we un-flag dragging to let native scroll take over? 
+                        // Actually, better to just return and let event bubble if it's a scroll.
+                        if (deltaY < 0) return;
+
+                        // If moving DOWN (deltaY > 0) and at top, we want to close.
+                        if (e.cancelable) e.preventDefault();
+                    } else {
+                        // Collapsed or Header -> Prevent page bounce
+                        if (e.cancelable) e.preventDefault();
                     }
-                    else if (deltaY > 0 && expanded) {
-                        sheet.classList.remove('expanded');
-                        this.animateChart(0);
+                }, { passive: false });
+
+                // Touch End
+                sheet.addEventListener('touchend', (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+
+                    const currentY = e.changedTouches[0].clientY;
+                    const deltaY = currentY - startY;
+                    const expanded = isExpanded();
+
+                    if (Math.abs(deltaY) > 50) {
+                        if (deltaY < 0 && !expanded) {
+                            sheet.classList.add('expanded');
+                            // Trigger Animation
+                            this.animateChart(this.currentEfficiencyVal || 78);
+                        } else if (deltaY > 0 && expanded) {
+                            sheet.classList.remove('expanded');
+                            // Reset Animation
+                            this.animateChart(0);
+                            this.resetEquipmentList(); // Reset List
+                        }
                     }
-                }
-            });
-        },
+                });
 
-        initDragScroll() {
-            const slider = document.querySelector('.equipment-grid');
-            if (!slider) return;
+                // Mouse (Simple)
+                sheet.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startY = e.clientY;
+                });
+                window.addEventListener('mouseup', (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    const deltaY = e.clientY - startY;
+                    const expanded = isExpanded();
+                    if (Math.abs(deltaY) > 50) {
+                        if (deltaY < 0 && !expanded) {
+                            sheet.classList.add('expanded');
+                            this.animateChart(this.currentEfficiencyVal || 78);
+                        }
+                        else if (deltaY > 0 && expanded) {
+                            sheet.classList.remove('expanded');
+                            this.animateChart(0);
+                            this.resetEquipmentList(); // Reset List
+                        }
+                    }
+                });
+            },
 
-            let isDown = false;
-            let startX;
-            let scrollLeft;
+            initDragScroll() {
+                const slider = document.querySelector('.equipment-grid');
+                if (!slider) return;
 
-            slider.addEventListener('mousedown', (e) => {
-                isDown = true;
-                slider.style.cursor = 'grabbing';
-                slider.style.scrollSnapType = 'none'; // Disable snap while dragging
-                startX = e.pageX - slider.offsetLeft;
-                scrollLeft = slider.scrollLeft;
-            });
+                let isDown = false;
+                let startX;
+                let scrollLeft;
 
-            const stopDragging = () => {
-                if (!isDown) return;
-                isDown = false;
-                slider.style.cursor = 'grab';
-                slider.style.scrollSnapType = 'x mandatory'; // Re-enable snap
-            };
+                slider.addEventListener('mousedown', (e) => {
+                    isDown = true;
+                    slider.style.cursor = 'grabbing';
+                    slider.style.scrollSnapType = 'none'; // Disable snap while dragging
+                    startX = e.pageX - slider.offsetLeft;
+                    scrollLeft = slider.scrollLeft;
+                });
 
-            slider.addEventListener('mouseleave', stopDragging);
-            slider.addEventListener('mouseup', stopDragging);
+                const stopDragging = () => {
+                    if (!isDown) return;
+                    isDown = false;
+                    slider.style.cursor = 'grab';
+                    slider.style.scrollSnapType = 'x mandatory'; // Re-enable snap
+                };
 
-            slider.addEventListener('mousemove', (e) => {
-                if (!isDown) return;
-                e.preventDefault();
-                const x = e.pageX - slider.offsetLeft;
-                const walk = (x - startX); // 1:1 movement (natural feel)
-                slider.scrollLeft = scrollLeft - walk;
-            });
-        },
+                slider.addEventListener('mouseleave', stopDragging);
+                slider.addEventListener('mouseup', stopDragging);
 
-        // Animation helper
-        animateChart(targetPercent) {
-            const chart = document.getElementById('efficiency-chart');
-            if (!chart) return;
+                slider.addEventListener('mousemove', (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - slider.offsetLeft;
+                    const walk = (x - startX); // 1:1 movement (natural feel)
+                    slider.scrollLeft = scrollLeft - walk;
+                });
+            },
 
-            // Simple lerp animation
-            const startPercent = parseFloat(chart.dataset.currentPercent || 0);
-            const startTime = performance.now();
-            const duration = 1500; // Slower, smoother
+            // Animation helper
+            animateChart(targetPercent) {
+                const chart = document.getElementById('efficiency-chart');
+                if (!chart) return;
 
-            const animate = (time) => {
-                const elapsed = time - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                // Ease out Quartic (Smoother)
-                const ease = 1 - Math.pow(1 - progress, 4);
+                // Simple lerp animation
+                const startPercent = parseFloat(chart.dataset.currentPercent || 0);
+                const startTime = performance.now();
+                const duration = 1500; // Slower, smoother
 
-                const current = startPercent + (targetPercent - startPercent) * ease;
+                const animate = (time) => {
+                    const elapsed = time - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    // Ease out Quartic (Smoother)
+                    const ease = 1 - Math.pow(1 - progress, 4);
 
-                chart.dataset.currentPercent = current;
+                    const current = startPercent + (targetPercent - startPercent) * ease;
 
-                // Animate Text
-                const textEl = document.getElementById('total-efficiency');
-                if (textEl) {
-                    textEl.innerText = Math.round(current) + '%';
-                }
+                    chart.dataset.currentPercent = current;
 
-                // Emotional Gradient: Sky Blue -> Vibrant Cyan
-                const themeStart = '#4facfe';
-                const themeEnd = '#00f2fe';
-                const emptyColor = '#eee'; // Softer empty color
+                    // Animate Text
+                    const textEl = document.getElementById('total-efficiency');
+                    if (textEl) {
+                        textEl.innerText = Math.round(current) + '%';
+                    }
 
-                chart.style.background = `conic-gradient(
+                    // Emotional Gradient: Sky Blue -> Vibrant Cyan
+                    const themeStart = '#4facfe';
+                    const themeEnd = '#00f2fe';
+                    const emptyColor = '#eee'; // Softer empty color
+
+                    chart.style.background = `conic-gradient(
                         ${themeStart} 0%, 
                         ${themeEnd} ${current}%, 
                         ${emptyColor} ${current}% 100%
                     )`;
 
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                }
-            };
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    }
+                };
 
-            requestAnimationFrame(animate);
-        }
-    },
-
-    report: {
-        show(id) {
-            const data = app.data.equipment[id];
-            if (data) {
-                this.render(data);
-                app.router.navigate('report');
-            } else {
-                alert('장비 데이터를 찾을 수 없습니다.');
+                requestAnimationFrame(animate);
             }
         },
 
-        render(data) {
-            const container = document.getElementById('report-content');
+        report: {
+            show(id) {
+                const data = app.data.equipment[id];
+                if (data) {
+                    this.render(data);
+                    app.router.navigate('report');
+                } else {
+                    alert('장비 데이터를 찾을 수 없습니다.');
+                }
+            },
 
-            // Color logic for status (Modern Minimalist)
-            let statusColor = 'var(--success)';
-            let statusText = '최고 (Excellent)';
-            let statusBg = 'rgba(16, 185, 129, 0.1)';
+            render(data) {
+                const container = document.getElementById('report-content');
 
-            if (data.healthScore < 80) {
-                statusColor = 'var(--danger)';
-                statusText = '경고 (Warning)';
-                statusBg = 'rgba(239, 68, 68, 0.1)';
-            }
-            else if (data.healthScore < 90) {
-                statusColor = 'var(--warning)';
-                statusText = '주의 (Attention)';
-                statusBg = 'rgba(245, 158, 11, 0.1)';
-            }
+                // Color logic for status (Modern Minimalist)
+                let statusColor = 'var(--success)';
+                let statusText = '최고 (Excellent)';
+                let statusBg = 'rgba(16, 185, 129, 0.1)';
 
-            // Components List (Clean & Professional)
-            let componentHtml = '';
-            data.components.forEach(comp => {
-                let color = 'var(--accent)';
-                if (comp.health < 40) color = 'var(--danger)';
-                else if (comp.health < 70) color = 'var(--warning)';
+                if (data.healthScore < 80) {
+                    statusColor = 'var(--danger)';
+                    statusText = '경고 (Warning)';
+                    statusBg = 'rgba(239, 68, 68, 0.1)';
+                }
+                else if (data.healthScore < 90) {
+                    statusColor = 'var(--warning)';
+                    statusText = '주의 (Attention)';
+                    statusBg = 'rgba(245, 158, 11, 0.1)';
+                }
 
-                componentHtml += `
+                // Components List (Clean & Professional)
+                let componentHtml = '';
+                data.components.forEach(comp => {
+                    let color = 'var(--accent)';
+                    if (comp.health < 40) color = 'var(--danger)';
+                    else if (comp.health < 70) color = 'var(--warning)';
+
+                    componentHtml += `
                         <div class="modern-row">
                             <div class="row-info">
                                 <span class="row-name">${comp.name}</span>
@@ -590,12 +592,12 @@ const app = {
                             </div>
                         </div>
                     `;
-            });
+                });
 
-            // History Timeline (Vertical & Clean)
-            let historyHtml = '';
-            data.history.forEach((hist, index) => {
-                historyHtml += `
+                // History Timeline (Vertical & Clean)
+                let historyHtml = '';
+                data.history.forEach((hist, index) => {
+                    historyHtml += `
                         <div class="modern-timeline-item">
                             <div class="timeline-dot"></div>
                             <div class="timeline-data">
@@ -604,9 +606,9 @@ const app = {
                             </div>
                         </div>
                     `;
-            });
+                });
 
-            const html = `
+                const html = `
                     <div class="modern-nav">
                         <button onclick="app.router.navigate('home')" class="nav-btn"><i class="fa-solid fa-arrow-left"></i></button>
                         <span class="nav-title">상세 리포트</span>
@@ -671,10 +673,10 @@ const app = {
                     </div>
                 `;
 
-            if (container) container.innerHTML = html;
+                if (container) container.innerHTML = html;
+            }
         }
-    }
-},
+    },
 
     // Mock Data
     data: {
@@ -764,8 +766,8 @@ const app = {
 
         renderHistoryList() {
             const list = document.getElementById('history-list');
-if (list) {
-    list.innerHTML = this.history.map(item => `
+            if (list) {
+                list.innerHTML = this.history.map(item => `
                     <div class="history-item ${item.status === 'danger' ? 'danger' : ''}">
                         <div>
                             <strong>${item.name}</strong>
@@ -776,19 +778,19 @@ if (list) {
                         </span>
                     </div>
                 `).join('');
-}
+            }
         },
 
-addHistory(isSafe) {
-    this.history.unshift({
-        id: Date.now(),
-        name: 'Test Device',
-        status: isSafe ? 'normal' : 'danger',
-        date: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-    });
-    // Keep only recent 5
-    if (this.history.length > 5) this.history.pop();
-}
+        addHistory(isSafe) {
+            this.history.unshift({
+                id: Date.now(),
+                name: 'Test Device',
+                status: isSafe ? 'normal' : 'danger',
+                date: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+            });
+            // Keep only recent 5
+            if (this.history.length > 5) this.history.pop();
+        }
     }
 };
 
