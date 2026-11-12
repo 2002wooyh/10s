@@ -1,5 +1,5 @@
 {
-  "name": "10초만 - 산업안전 진단",
+  "name": "10초만 - 설비 가동음 점검",
   "short_name": "10초만",
   "start_url": "./index.html",
   "display": "standalone",
@@ -9,11 +9,6 @@
     {
       "src": "assets/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "assets/icon-512.png",
-      "sizes": "192x192",
       "type": "image/png"
     }
   ]
