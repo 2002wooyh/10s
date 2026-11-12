@@ -1,182 +1,480 @@
 const app = {
-    // Application State
     state: {
-        isScanning: false,
-        scanProgress: 0,
-        currentResult: null, // 'safe' or 'danger'
+        pointId: 'dn2100',
+        condition: '',
+        mode: 'check',
+        result: null,
+        audioContext: null
     },
 
-    // Router Logic
     router: {
-        routes: ['splash', 'onboarding', 'home', 'measurement', 'result', 'management'],
-
-        init() {
-            // Default to home directly
-            this.navigate('home');
-        },
+        current: null,
 
         navigate(viewId) {
-            // Hide all views & trigger exit
-            document.querySelectorAll('.view').forEach(el => {
-                if (el.classList.contains('active')) {
-                    const currentViewId = el.id.replace('view-', '');
-                    if (app.views[currentViewId] && app.views[currentViewId].onExit) {
-                        app.views[currentViewId].onExit();
-                    }
-                    el.classList.remove('active');
-                }
-            });
+            const target = document.getElementById('view-' + viewId);
+            if (!target) return;
 
-            // Show target view
-            const target = document.getElementById(`view-${viewId}`);
-            if (target) {
-                target.classList.add('active');
-
-                // Trigger specific view logic
-                if (app.views[viewId] && app.views[viewId].onEnter) {
-                    app.views[viewId].onEnter();
-                }
+            if (this.current) app.views[this.current]?.onExit?.();
+            for (const view of document.querySelectorAll('.view')) {
+                view.inert = view !== target;
+                view.classList.toggle('active', view === target);
             }
+            this.current = viewId;
 
-            // Update Bottom Navigation
-            document.querySelectorAll('.bottom-nav button').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.target === viewId) {
-                    btn.classList.add('active');
-                }
+            document.querySelectorAll('.bottom-nav button').forEach(button => {
+                button.classList.toggle('active', button.dataset.target === viewId);
             });
+            app.views[viewId]?.onEnter?.();
         }
     },
 
-    // View Controllers
+    equipment: {
+        dn2100: 'DN Solutions Lynx 2100',
+        kf5600: '현대위아 KF5600 II',
+        ys080: '현대로보틱스 YS080',
+        as50: '경원기계 AS-50'
+    },
+
+    storage: {
+        read(key, fallback) {
+            try {
+                return JSON.parse(localStorage.getItem('10seconds:v1:' + key)) ?? fallback;
+            } catch {
+                return fallback;
+            }
+        },
+
+        write(key, value) {
+            try {
+                localStorage.setItem('10seconds:v1:' + key, JSON.stringify(value));
+                return true;
+            } catch {
+                return false;
+            }
+        },
+
+        baseline(id) {
+            return this.read('baseline:' + id, null);
+        },
+
+        history(id) {
+            return this.read('history:' + id, []);
+        },
+
+        saveRecord(id, record) {
+            const history = this.history(id).filter(previous => previous.id !== record.id);
+            return this.write('history:' + id, [record, ...history]
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 30));
+        }
+    },
+
+    points: {
+        list() {
+            const defaults = Object.keys(app.equipment).map(id => ({
+                id, equipmentId: id, label: '기본 측정 위치'
+            }));
+            return defaults.concat(app.storage.read('points', []));
+        },
+
+        find(id) {
+            return this.list().find(point => point.id === id);
+        },
+
+        save(point) {
+            const custom = app.storage.read('points', []);
+            if (!app.storage.write('points', [...custom, point])) {
+                throw new Error('측정 위치를 저장할 수 없습니다. 브라우저 저장 공간을 확인하세요.');
+            }
+            return point;
+        },
+
+        add(equipmentId, label) {
+            if (!Object.hasOwn(app.equipment, equipmentId) || !label || label.length > 60) {
+                throw new Error('설비와 측정 위치를 확인하세요.');
+            }
+            const suffix = crypto.randomUUID().replaceAll('-', '').slice(0, 12);
+            return this.save({ id: equipmentId + '-' + suffix, equipmentId, label });
+        },
+
+        fromTag(id, href) {
+            const existing = this.find(id);
+            if (existing) return existing;
+            const equipmentId = /^([a-z0-9]+)-[a-f0-9]{12}$/.exec(id)?.[1];
+            if (!href || !equipmentId || !Object.hasOwn(app.equipment, equipmentId)) return null;
+
+            const url = new URL(href);
+            const label = url.searchParams.get('location')?.trim();
+            if (url.origin !== location.origin || !label || label.length > 60) return null;
+            return this.save({ id, equipmentId, label });
+        },
+
+        tagLink(point) {
+            const url = new URL(location.pathname === '/live.html' ? '/live.html' : '/', location.href);
+            url.searchParams.set('point', point.id);
+            if (point.id !== point.equipmentId) url.searchParams.set('location', point.label);
+            return url.href;
+        },
+
+        equipmentHistory(equipmentId, pointId) {
+            return this.list()
+                .filter(point => point.equipmentId === equipmentId && (!pointId || point.id === pointId))
+                .flatMap(point => app.storage.history(point.id).map(record => ({ ...record, point })))
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        }
+    },
+
     views: {
         home: {
-            startScan() {
-                // Direct navigation with slight delay for UX
+            tagReady: false,
+            nfcJob: null,
+            nfcTask: null,
+
+            onEnter() {
+                this.refresh();
+                this.status('버튼을 누른 뒤 설비의 NFC 스티커에 태그하세요.');
+            },
+
+            refresh(replace = false) {
+                const point = app.points.find(app.state.pointId);
+                const baseline = app.storage.baseline(point.id);
+                const equipment = document.getElementById('scan-equipment');
+                equipment.replaceChildren(...app.points.list().map(item =>
+                    new Option(app.equipment[item.equipmentId] + ' · ' + item.label, item.id)));
+                equipment.value = point.id;
+                document.getElementById('baseline-info').textContent = baseline
+                    ? '등록된 운전 조건 · ' + baseline.condition
+                    : '이 위치에서 정상 가동음을 먼저 등록하세요.';
+                document.getElementById('baseline-form').hidden = Boolean(baseline && !replace);
+                document.getElementById('start-check').hidden = !baseline || replace;
+                document.getElementById('replace-baseline').hidden = !baseline || replace;
+                const condition = document.getElementById('baseline-condition');
+                condition.value = baseline?.condition ?? '';
+                condition.setCustomValidity('');
+                document.getElementById('tag-link').value = app.points.tagLink(point);
+                document.getElementById('write-tag').hidden = !EquipmentNFC.isSupported();
+                document.getElementById('tag-ready').hidden = !this.tagReady || !baseline;
+                document.getElementById('tag-ready-info').textContent = app.equipment[point.equipmentId] + ' · ' + point.label;
+            },
+
+            selectPoint(id) {
+                this.nfcJob?.abort();
+                this.tagReady = false;
+                app.state.pointId = id;
+                this.refresh();
+            },
+
+            start(mode, audioContext = null) {
+                const baseline = app.storage.baseline(app.state.pointId);
+                const condition = document.getElementById('baseline-condition');
+                if (mode === 'baseline' && !condition.value.trim()) {
+                    condition.setCustomValidity('정상 운전 조건을 입력하세요.');
+                    condition.reportValidity();
+                    return false;
+                }
+                if (mode === 'check' && !baseline) {
+                    this.refresh();
+                    return false;
+                }
+                this.tagReady = false;
+                app.state.mode = mode;
+                app.state.condition = mode === 'baseline' ? condition.value.trim() : baseline.condition;
+                app.state.audioContext = audioContext;
+                document.getElementById('manual-scan').open = false;
                 app.router.navigate('measurement');
+                return true;
+            },
+
+            handleTag(pointId, url, direct = false, audioContext = null) {
+                const point = app.points.fromTag(pointId, url);
+                if (!point) throw new Error('등록된 측정 위치를 찾을 수 없습니다. 이 앱에서 만든 NFC 링크를 확인하세요.');
+
+                app.state.pointId = point.id;
+                const hasBaseline = Boolean(app.storage.baseline(point.id));
+                this.tagReady = hasBaseline && !direct;
+                this.refresh();
+                const name = app.equipment[point.equipmentId] + ' · ' + point.label;
+                if (!hasBaseline) {
+                    document.getElementById('manual-scan').open = true;
+                    this.status(name + ' 인식 완료. 이 위치의 정상 가동음을 등록하세요.');
+                    return false;
+                }
+                this.status(direct ? name + ' 인식 완료' : 'NFC 측정 위치를 확인했습니다.');
+                return direct && this.start('check', audioContext);
+            },
+
+            status(message) {
+                document.getElementById('nfc-status').textContent = message;
+            },
+
+            updateTagButtons() {
+                const reading = this.nfcTask === 'read';
+                const button = document.getElementById('start-tag-scan');
+                button.classList.toggle('scanning', reading);
+                button.setAttribute('aria-label', reading ? 'NFC 태그 읽기 취소' : 'NFC 태그로 측정');
+                document.getElementById('tag-scan-title').textContent = reading ? 'NFC 태그 대기 중' : 'NFC 태그로 측정';
+                document.getElementById('write-tag').textContent = this.nfcTask === 'write'
+                    ? '쓰기 취소' : 'NFC 스티커에 쓰기';
+            },
+
+            async scanTag() {
+                if (this.nfcJob) {
+                    this.nfcJob.abort();
+                    return;
+                }
+                if (!EquipmentNFC.isSupported()) {
+                    document.getElementById('manual-scan').open = true;
+                    this.status('휴대폰으로 NFC 스티커의 링크를 열거나, 아래에서 측정 위치를 선택하세요.');
+                    return;
+                }
+
+                const job = new AbortController();
+                this.nfcJob = job;
+                this.nfcTask = 'read';
+                this.updateTagButtons();
+                this.status('NFC 권한을 확인하고 있습니다.');
+                let audioContext = AudioAnalysis.prepareCapture();
+                try {
+                    const { pointId, url } = await EquipmentNFC.scan({
+                        signal: job.signal,
+                        origin: location.origin,
+                        onWaiting: () => this.status('설비의 NFC 스티커에 태그하세요. 다시 누르면 취소됩니다.')
+                    });
+                    if (!job.signal.aborted && this.handleTag(pointId, url, true, audioContext)) {
+                        audioContext = null;
+                    }
+                } catch (error) {
+                    if (app.router.current === 'home') {
+                        this.status(job.signal.aborted ? 'NFC 읽기를 취소했습니다.' : error.message);
+                    }
+                } finally {
+                    if (audioContext && audioContext.state !== 'closed') void audioContext.close().catch(() => {});
+                    this.nfcJob = null;
+                    this.nfcTask = null;
+                    this.updateTagButtons();
+                }
+            },
+
+            async writeTag() {
+                if (this.nfcJob) {
+                    this.nfcJob.abort();
+                    return;
+                }
+                const job = new AbortController();
+                this.nfcJob = job;
+                this.nfcTask = 'write';
+                this.updateTagButtons();
+                const status = document.getElementById('tag-link-status');
+                status.textContent = '선택한 측정 위치의 NFC 스티커를 휴대폰에 대세요.';
+                try {
+                    await EquipmentNFC.write({ url: document.getElementById('tag-link').value, signal: job.signal });
+                    status.textContent = '측정 위치 링크를 NFC 스티커에 기록했습니다.';
+                } catch (error) {
+                    status.textContent = job.signal.aborted ? 'NFC 쓰기를 취소했습니다.' : error.message;
+                } finally {
+                    this.nfcJob = null;
+                    this.nfcTask = null;
+                    this.updateTagButtons();
+                }
+            },
+
+            onExit() {
+                this.nfcJob?.abort();
             }
         },
 
         measurement: {
-            timerInterval: null,
-            animationFrame: null,
-            waveCanvas: null, // Kept for logic if needed, but UI removed
-            waveCtx: null,
-            startTime: 0,
+            job: null,
 
             onEnter() {
-                app.state.isScanning = true;
-                app.state.scanProgress = 0;
-
-                // Ensure waves are visible (in case they were hidden globally before)
-                document.querySelectorAll('#view-measurement .wave').forEach(el => el.style.display = 'block');
-
-                // Initialize Progress Ring
-                const circle = document.querySelector('.progress-ring__circle');
-                const radius = circle.r.baseVal.value;
-                const circumference = radius * 2 * Math.PI;
-
-                circle.style.strokeDasharray = `${circumference} ${circumference}`;
-                circle.style.strokeDashoffset = circumference; // Start empty
-
-                this.startSimulation(circle, circumference);
+                this.start();
             },
 
-            // setupCanvas removed as we don't need it for visualization anymore (using CSS waves only)
-
-            startSimulation(circle, circumference) {
-                this.startTime = Date.now();
+            async start() {
+                this.job?.abort();
+                const job = new AbortController();
+                this.job = job;
+                const { pointId, condition, mode, audioContext } = app.state;
+                app.state.audioContext = null;
+                const point = app.points.find(pointId);
+                const baseline = app.storage.baseline(pointId);
                 const progressText = document.getElementById('progress-text');
-                const duration = 3000; // 3 seconds (Super Fast Demo Mode)
+                const retry = document.getElementById('retry-recording');
+                const circle = document.querySelector('.progress-ring__circle');
+                const circumference = 2 * Math.PI * Number(circle.getAttribute('r'));
 
-                // Timer & Logic Loop
-                this.timerInterval = setInterval(() => {
-                    const elapsed = Date.now() - this.startTime;
-                    const progress = Math.min((elapsed / duration), 1); // 0 to 1
+                retry.hidden = true;
+                circle.style.strokeDasharray = circumference;
+                circle.style.strokeDashoffset = circumference;
+                progressText.textContent = '마이크 권한을 확인하고 있습니다';
 
-                    // Update Ring
-                    const offset = circumference - (progress * circumference);
-                    circle.style.strokeDashoffset = offset;
+                try {
+                    const { samples, sampleRate } = await AudioAnalysis.capture({
+                        durationMs: 10000,
+                        signal: job.signal,
+                        preparedContext: audioContext,
+                        onProgress: fraction => {
+                            if (job.signal.aborted) return;
+                            circle.style.strokeDashoffset = circumference * (1 - fraction);
+                            progressText.textContent = '가동음 녹음 중 · ' +
+                                Math.min(10, Math.floor(fraction * 10)) + ' / 10초';
+                        }
+                    });
+                    if (job.signal.aborted) return;
+                    progressText.textContent = '가동음 주파수를 계산하고 있습니다';
+                    const features = AudioAnalysis.analyze(samples, sampleRate);
+                    const createdAt = new Date().toISOString();
 
-                    // Update State
-                    app.state.scanProgress = progress * 100;
-
-                    if (progress * 100 < 30) progressText.innerText = "초기화 및 센서 보정 중...";
-                    else if (progress * 100 < 70) progressText.innerText = "주파수 대역 정밀 스캔 중...";
-                    else progressText.innerText = "데이터 분석 및 결함 탐지 중...";
-
-                    if (elapsed >= duration) {
-                        this.finishScan();
+                    if (mode === 'baseline') {
+                        if (!app.storage.write('baseline:' + pointId, { condition, createdAt, features })) {
+                            throw new Error('정상 기준을 저장할 수 없습니다. 브라우저 저장 공간을 확인하세요.');
+                        }
+                        app.state.result = { point, condition, mode };
+                    } else {
+                        if (!baseline) throw new Error('이 위치의 정상 가동음을 먼저 등록하세요.');
+                        const comparison = AudioAnalysis.compare(baseline.features, features);
+                        const record = {
+                            id: crypto.randomUUID(),
+                            condition,
+                            createdAt,
+                            comparison,
+                            explanation: null
+                        };
+                        const stored = app.storage.saveRecord(pointId, record);
+                        app.state.result = { point, condition, mode, record, stored, baseline, features };
                     }
-                }, 16);
-            },
-
-            // drawWaveform/drawFFT removed - relying on CSS animation
-
-            finishScan() {
-                clearInterval(this.timerInterval);
-                // Result Logic (Random for Demo)
-                const result = Math.random() > 0.5 ? 'safe' : 'danger';
-                app.state.currentResult = result;
-                app.router.navigate('result');
+                    app.router.navigate('result');
+                } catch (error) {
+                    if (job.signal.aborted) return;
+                    const microphoneErrors = {
+                        NotAllowedError: '브라우저에서 마이크 권한을 허용한 뒤 다시 측정하세요.',
+                        SecurityError: '브라우저에서 마이크 권한을 허용한 뒤 다시 측정하세요.',
+                        NotFoundError: '사용할 수 있는 마이크가 없습니다. 마이크 연결을 확인하세요.',
+                        NotReadableError: '마이크를 열 수 없습니다. 다른 앱에서 사용 중인지 확인하세요.'
+                    };
+                    progressText.textContent = microphoneErrors[error.name] || error.message ||
+                        '측정을 완료하지 못했습니다. 다시 시도하세요.';
+                    retry.hidden = false;
+                }
             },
 
             onExit() {
-                if (this.timerInterval) clearInterval(this.timerInterval);
+                this.job?.abort();
+                this.job = null;
             }
         },
 
         result: {
+            job: null,
+
             onEnter() {
+                const result = app.state.result;
+                if (!result) {
+                    app.router.navigate('home');
+                    return;
+                }
+                this.render(result);
+                if (result.record && !result.record.explanation) this.requestExplanation();
+            },
+
+            onExit() {
+                this.job?.abort();
+                this.job = null;
+            },
+
+            render(result) {
+                const { point, condition, record, stored } = result;
+                const comparison = record?.comparison;
+                const different = comparison?.status === 'different';
+                const title = comparison ? app.comparisonLabel(comparison) : '정상 기준 등록 완료';
                 const container = document.getElementById('result-content');
-                const isSafe = app.state.currentResult === 'safe';
-
-                // Emotional Design Structure
-                const html = `
-                    <div class="result-container ${isSafe ? 'safe' : 'danger'}">
+                container.innerHTML = `
+                    <div class="result-container ${different ? 'danger' : 'safe'}">
                         <div class="result-content-wrapper">
-                            <div class="status-icon-large">
-                                <i class="fa-solid ${isSafe ? 'fa-shield-heart' : 'fa-triangle-exclamation'}"></i>
+                            <div class="status-icon-large" aria-hidden="true">
+                                <i class="fa-solid ${different ? 'fa-wave-square' : 'fa-microphone'}"></i>
                             </div>
-                            
                             <div class="status-text-group">
-                                <span class="status-label">AI Analysis Complete</span>
-                                <h2 class="status-headline">${isSafe ? '정상입니다' : '점검이 필요합니다'}</h2>
-                                <p class="status-desc">${isSafe ? '설비가 편안한 상태로<br>운용되고 있습니다.' : '평소와 다른 진동이<br>감지되었습니다.'}</p>
+                                <p class="status-label" id="result-equipment"></p>
+                                <h2 class="status-headline">${title}</h2>
+                                <p class="status-desc" id="result-condition"></p>
                             </div>
-
-                            <div class="glass-card">
-                                <div class="data-row">
-                                    <span class="data-label">${isSafe ? '안전 신뢰도' : '위험 심각도'}</span>
-                                    <span class="data-value">${isSafe ? '98.5%' : '심각 (High)'}</span>
-                                </div>
-                                <div class="divider"></div>
-                                <div class="data-row">
-                                    <span class="data-label">진단 소견</span>
-                                    <span class="data-value">${isSafe ? '진동 패턴 안정적' : '베어링 마모 의심'}</span>
-                                </div>
-                            </div>
-
+                            <div id="fft-result"></div>
+                            <section class="glass-card ai-explanation" id="ai-explanation" ${record ? '' : 'hidden'}>
+                                <h3>AI 분석 설명</h3>
+                                <p id="explanation-status" role="status"></p>
+                                <div id="explanation-details"></div>
+                                <button id="retry-explanation" class="btn-glass-secondary" type="button" hidden>AI 설명 다시 요청</button>
+                            </section>
+                            ${record && !stored ? '<p class="storage-warning">브라우저에 점검 이력을 저장하지 못했습니다.</p>' : ''}
                             <div class="action-group">
-                                <button class="btn-glass-primary" onclick="app.router.navigate('home')">
-                                    ${isSafe ? '확인 완료' : '재진단 수행'}
+                                <button class="btn-glass-primary" type="button" onclick="app.router.navigate('home')">
+                                    ${record ? '홈으로' : '점검 화면으로'}
                                 </button>
-                                <button class="btn-glass-secondary" onclick="app.views.report.show('dn2100')">
-                                    상세 리포트 보기
-                                </button>
+                                ${record ? '<button id="result-history" class="btn-glass-secondary" type="button">설비 점검 이력</button>' : ''}
                             </div>
                         </div>
-                        
-                        <!-- Ambient Particles (Optional enhancement) -->
-                        <div class="ambient-circle c1"></div>
-                        <div class="ambient-circle c2"></div>
-                    </div>
-                `;
+                    </div>`;
+                document.getElementById('result-equipment').textContent = app.equipment[point.equipmentId];
+                document.getElementById('result-condition').textContent = point.label + ' · ' + condition;
+                if (!record) return;
 
-                if (container) container.innerHTML = html;
+                app.renderComparison(document.getElementById('fft-result'), comparison);
+                document.getElementById('retry-explanation').onclick = () => this.requestExplanation();
+                document.getElementById('result-history').onclick = () => app.views.report.show(point.equipmentId, point.id);
+                if (record.explanation) {
+                    app.renderExplanation(document.getElementById('explanation-details'), record.explanation);
+                }
+            },
 
-                // Add to history
-                app.ui.addHistory(isSafe);
+            async requestExplanation() {
+                this.job?.abort();
+                const job = new AbortController();
+                this.job = job;
+                const { point, condition, record, baseline, features, stored } = app.state.result;
+                const status = document.getElementById('explanation-status');
+                const retry = document.getElementById('retry-explanation');
+                status.textContent = '주파수 차이에 대한 AI 설명을 요청하고 있습니다.';
+                retry.hidden = true;
+
+                const describe = ({ version, durationSeconds, sampleRate, rmsDb, peakHz }) =>
+                    ({ version, durationSeconds, sampleRate, rmsDb, peakHz });
+
+                try {
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: job.signal,
+                        body: JSON.stringify({
+                            equipment: app.equipment[point.equipmentId] + ' · ' + point.label,
+                            condition,
+                            baseline: describe(baseline.features),
+                            measurement: describe(features),
+                            comparison: record.comparison
+                        })
+                    });
+                    const explanation = await response.json().catch(() => null);
+                    if (!response.ok) {
+                        throw new Error(explanation?.error || 'AI 분석 서버에 연결할 수 없습니다.');
+                    }
+                    if (typeof explanation?.summary !== 'string' ||
+                        !Array.isArray(explanation.observations) || !Array.isArray(explanation.nextChecks)) {
+                        throw new Error('AI 분석 응답을 읽을 수 없습니다.');
+                    }
+                    if (job.signal.aborted) return;
+                    record.explanation = explanation;
+                    if (stored && !app.storage.saveRecord(point.id, record)) {
+                        status.textContent = 'AI 설명은 표시되었으나 이력에는 저장되지 않았습니다.';
+                    } else {
+                        status.textContent = '';
+                    }
+                    app.renderExplanation(document.getElementById('explanation-details'), explanation);
+                } catch (error) {
+                    if (job.signal.aborted) return;
+                    status.textContent = error instanceof TypeError
+                        ? 'AI 분석 서버에 연결할 수 없습니다. 서버 실행 상태를 확인하세요.'
+                        : error.message;
+                    retry.hidden = false;
+                }
             }
         },
 
@@ -184,164 +482,42 @@ const app = {
             onEnter() {
                 this.initDragScroll();
                 this.initBottomSheet();
+                document.getElementById('equipment-sheet').classList.remove('expanded');
                 this.updateSummarySheet();
-
-                // Reset bottom sheet state to collapsed when entering tab
-                const sheet = document.getElementById('equipment-sheet');
-                if (sheet) sheet.classList.remove('expanded');
             },
 
             updateSummarySheet() {
-                // Determine counts and scores from DOM (or Data)
-                const cards = document.querySelectorAll('.equip-card');
-                const total = cards.length;
-                let safe = 0, warning = 0, danger = 0;
-                let totalScore = 0;
+                const cards = [...document.querySelectorAll('.equip-card')];
+                const counts = { similar: 0, different: 0, pending: 0 };
+                const list = document.getElementById('sheet-equipment-list');
+                list.replaceChildren();
 
                 cards.forEach(card => {
+                    const id = card.dataset.equipment;
+                    const latest = app.points.equipmentHistory(id)[0];
+                    const status = latest?.comparison.status || 'pending';
+                    counts[status]++;
+                    const label = latest ? app.comparisonLabel(latest.comparison) : '미측정';
                     const badge = card.querySelector('.status-badge');
-                    if (badge.classList.contains('safe')) safe++;
-                    else if (badge.classList.contains('warning')) warning++;
-                    else if (badge.classList.contains('danger')) danger++;
+                    badge.textContent = label;
+                    badge.className = 'status-badge ' +
+                        (status === 'similar' ? 'safe' : status === 'different' ? 'warning' : '');
 
-                    // Mock score based on status for demo visualization
-                    // In real app, this would come from app.data.equipment
-                    if (badge.classList.contains('safe')) totalScore += 95;
-                    else if (badge.classList.contains('warning')) totalScore += 75;
-                    else if (badge.classList.contains('danger')) totalScore += 45;
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'clean-list-item measured-equipment-item';
+                    item.textContent = app.equipment[id] + ' · ' + label;
+                    item.onclick = () => app.views.report.show(id);
+                    list.append(item);
                 });
 
-                const avgEfficiency = total > 0 ? Math.round(totalScore / total) : 0;
-
-                // Update Stats Grid
-                const elSafe = document.getElementById('sheet-count-safe');
-                const elWarning = document.getElementById('sheet-count-warning');
-                const elDanger = document.getElementById('sheet-count-danger');
-                if (elSafe) elSafe.innerText = safe;
-                if (elWarning) elWarning.innerText = warning;
-                if (elDanger) elDanger.innerText = danger;
-
-                // Update Average Text
-                const elTotalEff = document.getElementById('total-efficiency');
-                if (elTotalEff) elTotalEff.innerText = `${avgEfficiency}%`;
-
-                // Update Donut Chart Gradient (Gauge Style)
-                const chart = document.getElementById('efficiency-chart');
-                // Reset to 0% initially (animation will handle the rest)
-                this.currentEfficiencyVal = avgEfficiency;
-
-                // Initial state is empty
-                const emptyColor = '#eee';
-                chart.style.background = `conic-gradient(
-                        var(--accent) 0% 0%, 
-                        ${emptyColor} 0% 100%
-                    )`;
-
-                // Populate Clean Equipment List
-                const listContainer = document.getElementById('sheet-equipment-list');
-                if (!listContainer) return;
-
-                listContainer.innerHTML = ''; // Clear existing
-
-                cards.forEach(card => {
-                    const name = card.querySelector('h3').innerText;
-                    const type = card.querySelector('p').innerText;
-                    const badge = card.querySelector('.status-badge');
-
-                    let score = 95;
-                    // Neutral Color
-                    let colorVar = '#333';
-
-                    if (badge.classList.contains('warning')) {
-                        score = 75;
-                    }
-                    if (badge.classList.contains('danger')) {
-                        score = 45;
-                    }
-
-                    const itemHtml = `
-                        <div class="clean-list-item" onclick="${card.getAttribute('onclick')}" data-score="${score}">
-                            <div class="clean-item-header">
-                                <div>
-                                    <span class="clean-item-name">${name}</span>
-                                    <span class="clean-item-type">${type}</span>
-                                </div>
-                                <span class="clean-item-score" style="color: var(--text-main)">0%</span>
-                            </div>
-                            <div class="clean-item-bar-bg">
-                                <div class="clean-item-bar-fill" style="width: 0%; background: #333"></div>
-                            </div>
-                        </div>
-                    `;
-                    listContainer.insertAdjacentHTML('beforeend', itemHtml);
-                });
-
-                // Initialize Observer for scroll animation
-                this.initListObserver();
-            },
-
-
-
-            // Observer for List Animation because user wants "scroll" trigger
-            initListObserver() {
-                const options = {
-                    root: document.querySelector('.sheet-content'),
-                    threshold: 0.1
-                };
-
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const item = entry.target;
-                            if (item.classList.contains('played')) return; // Already played
-
-                            item.classList.add('played');
-                            const targetScore = parseInt(item.dataset.score);
-
-                            // Animate Bar
-                            const bar = item.querySelector('.clean-item-bar-fill');
-                            bar.style.width = targetScore + '%';
-                            bar.style.transition = 'width 1.2s cubic-bezier(0.22, 1, 0.36, 1)';
-
-                            // Animate Number
-                            const scoreEl = item.querySelector('.clean-item-score');
-                            this.animateNumber(scoreEl, 0, targetScore, 1200);
-                        }
-                    });
-                }, options);
-
-                const items = document.querySelectorAll('.clean-list-item');
-                items.forEach(item => observer.observe(item));
-            },
-
-            animateNumber(el, start, end, duration) {
-                const startTime = performance.now();
-                const animate = (time) => {
-                    const elapsed = time - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    // Ease out Quartic
-                    const ease = 1 - Math.pow(1 - progress, 4);
-                    const current = Math.round(start + (end - start) * ease);
-                    el.innerText = current + '%';
-
-                    if (progress < 1) requestAnimationFrame(animate);
-                };
-                requestAnimationFrame(animate);
-            },
-
-            resetEquipmentList() {
-                const items = document.querySelectorAll('.clean-list-item');
-                items.forEach(item => {
-                    item.classList.remove('played');
-                    // Reset Bar
-                    const bar = item.querySelector('.clean-item-bar-fill');
-                    bar.style.transition = 'none'; // Instant reset
-                    bar.style.width = '0%';
-
-                    // Reset Number
-                    const scoreEl = item.querySelector('.clean-item-score');
-                    scoreEl.innerText = '0%';
-                });
+                document.getElementById('sheet-count-safe').textContent = counts.similar;
+                document.getElementById('sheet-count-warning').textContent = counts.different;
+                document.getElementById('sheet-count-danger').textContent = counts.pending;
+                this.coveragePercent = cards.length
+                    ? 100 * (cards.length - counts.pending) / cards.length
+                    : 0;
+                this.animateChart(0);
             },
 
             initBottomSheet() {
@@ -354,7 +530,7 @@ const app = {
 
                 const content = sheet.querySelector('.sheet-content');
                 const handle = sheet.querySelector('.sheet-handle-wrapper');
-                const header = sheet.querySelector('.sheet-header');
+                
 
                 let startY;
                 let isDragging = false;
@@ -426,12 +602,11 @@ const app = {
                         if (deltaY < 0 && !expanded) {
                             sheet.classList.add('expanded');
                             // Trigger Animation
-                            this.animateChart(this.currentEfficiencyVal || 78);
+                            this.animateChart(this.coveragePercent);
                         } else if (deltaY > 0 && expanded) {
                             sheet.classList.remove('expanded');
                             // Reset Animation
                             this.animateChart(0);
-                            this.resetEquipmentList(); // Reset List
                         }
                     }
                 });
@@ -449,12 +624,11 @@ const app = {
                     if (Math.abs(deltaY) > 50) {
                         if (deltaY < 0 && !expanded) {
                             sheet.classList.add('expanded');
-                            this.animateChart(this.currentEfficiencyVal || 78);
+                            this.animateChart(this.coveragePercent);
                         }
                         else if (deltaY > 0 && expanded) {
                             sheet.classList.remove('expanded');
                             this.animateChart(0);
-                            this.resetEquipmentList(); // Reset List
                         }
                     }
                 });
@@ -462,7 +636,8 @@ const app = {
 
             initDragScroll() {
                 const slider = document.querySelector('.equipment-grid');
-                if (!slider) return;
+                if (!slider || slider.dataset.dragReady) return;
+                slider.dataset.dragReady = 'true';
 
                 let isDown = false;
                 let startX;
@@ -541,415 +716,156 @@ const app = {
             }
         },
 
+
         report: {
-            show(id) {
-                const data = app.data.equipment[id];
-                if (data) {
-                    this.render(data);
-                    app.router.navigate('report');
-                } else {
-                    alert('장비 데이터를 찾을 수 없습니다.');
-                }
-            },
-
-            render(data) {
+            show(id, pointId) {
+                if (!app.equipment[id]) return;
                 const container = document.getElementById('report-content');
+                container.replaceChildren();
 
-                // Emotional Theme Colors
-                let themeColor = 'var(--accent)'; // Default Blue
-                let themeSoft = 'rgba(93, 156, 236, 0.15)';
-                let statusText = '최적의 상태';
-                let statusSub = '완벽한 상태입니다';
-                let startColor = '#4facfe'; // Blue
-                let endColor = '#00f2fe';   // Cyan
+                const title = document.createElement('h3');
+                title.textContent = app.equipment[id];
+                container.append(title);
 
-                if (data.healthScore < 80) {
-                    themeColor = '#ff6b6b'; // Red
-                    themeSoft = 'rgba(255, 107, 107, 0.15)';
-                    statusText = '심각한 위험';
-                    statusSub = '점검이 시급합니다';
-                    startColor = '#ff9a9e';
-                    endColor = '#fecfef';
-                } else if (data.healthScore < 90) {
-                    themeColor = '#fbc02d'; // Yellow
-                    themeSoft = 'rgba(251, 192, 45, 0.15)';
-                    statusText = '점검 필요';
-                    statusSub = '주의가 필요합니다';
-                    startColor = '#f6d365';
-                    endColor = '#fda085';
+                const history = app.points.equipmentHistory(id, pointId);
+                if (!history.length) {
+                    const empty = document.createElement('p');
+                    empty.textContent = '저장된 가동음 점검 결과가 없습니다.';
+                    container.append(empty);
                 }
 
-                // Components HTML (Biosignal Lines)
-                let componentHtml = '';
-                data.components.forEach((comp, index) => {
-                    let compColor = themeColor;
-                    if (comp.health < 40) compColor = '#ff6b6b';
-
-                    componentHtml += `
-                        <div class="bio-row" style="animation-delay: ${0.2 + (index * 0.1)}s">
-                            <div class="bio-info">
-                                <span class="bio-name">${comp.name}</span>
-                                <span class="bio-status">${comp.replaceIn} 교체 권장</span>
-                            </div>
-                            <div class="bio-visual">
-                                <div class="bio-line-bg">
-                                    <div class="bio-line-fill" style="width: ${comp.health}%; background: ${compColor}; box-shadow: 0 0 10px ${compColor};"></div>
-                                </div>
-                                <span class="bio-score" style="color: ${compColor}">${comp.health}%</span>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                // Timeline HTML
-                let historyHtml = '';
-                data.history.forEach((hist, index) => {
-                    historyHtml += `
-                        <div class="story-item" style="animation-delay: ${0.5 + (index * 0.1)}s">
-                            <div class="story-dot" style="background: ${themeColor}"></div>
-                            <div class="story-content">
-                                <span class="story-date">${hist.date}</span>
-                                <span class="story-desc">${hist.type} · ${hist.result}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                // Determine Badge Class & Text
-                let badgeClass = 'safe';
-                let badgeText = '정상';
-
-                if (data.healthScore < 80) {
-                    badgeClass = 'danger';
-                    badgeText = '위험';
-                } else if (data.healthScore < 90) {
-                    badgeClass = 'warning';
-                    badgeText = '주의';
-                }
-
-                // --- Page 1: Overview (Hero + Score + Comment) ---
-                const page1Html = `
-                    <div class="report-page" id="report-page-1">
-                        <!-- Hero Section -->
-                        <div class="emotional-hero">
-                             <div class="floating-image-wrapper">
-                                <img src="${data.image}" alt="${data.name}" class="floating-image">
-                                <span class="status-badge ${badgeClass}">${badgeText}</span>
-                            </div>
-                            <div class="hero-text">
-                                <h1 class="hero-title" style="font-size: 1.8rem; margin-bottom: 4px;">${data.name}</h1>
-                                <span class="hero-category" style="font-size: 1rem; color: var(--text-sub);">${data.type}</span>
-                                
-                                <!-- Emotional Donut Gauge -->
-                                <div class="soul-ring-wrapper" style="margin: 15px auto; position: relative; width: 180px; height: 180px;">
-                                    <svg class="soul-ring" width="180" height="180" viewBox="0 0 220 220" style="transform: rotate(-90deg);">
-                                        <defs>
-                                            <linearGradient id="emotionalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                <stop offset="0%" style="stop-color: #4facfe; stop-opacity: 1" />
-                                                <stop offset="100%" style="stop-color: #00f2fe; stop-opacity: 1" />
-                                            </linearGradient>
-                                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                                                <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-                                                <feMerge>
-                                                    <feMergeNode in="coloredBlur" />
-                                                    <feMergeNode in="SourceGraphic" />
-                                                </feMerge>
-                                            </filter>
-                                        </defs>
-                                        <!-- Background Ring -->
-                                        <circle cx="110" cy="110" r="90" fill="transparent" stroke="#f0f2f5" stroke-width="20" stroke-linecap="round"></circle>
-                                        <!-- Progress Ring -->
-                                        <circle id="emotional-gauge-progress" cx="110" cy="110" r="90" fill="transparent" stroke="url(#emotionalGradient)" stroke-width="20" stroke-linecap="round" 
-                                            style="stroke-dasharray: ${2 * Math.PI * 90}; stroke-dashoffset: ${2 * Math.PI * 90}; filter: url(#glow); transition: stroke-dashoffset 1.5s ease-out;"></circle>
-                                    </svg>
-                                    <div class="soul-score" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                                        <span id="emotional-score-value" class="score-val" style="font-size: 3.2rem; font-weight: 700; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -2px;">0</span>
-                                        <span class="score-label" style="display: block; font-size: 0.85rem; color: #888; font-weight: 500; margin-top: -5px;">AI 진단 점수</span>
-                                    </div>
-                                    <script>
-                                        setTimeout(() => {
-                                            const targetScore = ${data.healthScore};
-                                            const circumference = 2 * Math.PI * 90;
-                                            const offset = circumference * (1 - targetScore / 100);
-                                            
-                                            // Animate Gauge
-                                            document.getElementById('emotional-gauge-progress').style.strokeDashoffset = offset;
-                                            
-                                            // Animate Score Counter
-                                            const scoreElement = document.getElementById('emotional-score-value');
-                                            let currentScore = 0;
-                                            const duration = 1500; // 1.5s
-                                            const startTime = performance.now();
-                                            
-                                            function updateScore(currentTime) {
-                                                const elapsed = currentTime - startTime;
-                                                const progress = Math.min(elapsed / duration, 1);
-                                                
-                                                // Ease-out function
-                                                const easeOut = 1 - Math.pow(1 - progress, 3);
-                                                
-                                                currentScore = Math.floor(easeOut * targetScore);
-                                                scoreElement.innerText = currentScore;
-                                                
-                                                if (progress < 1) {
-                                                    requestAnimationFrame(updateScore);
-                                                } else {
-                                                    scoreElement.innerText = targetScore;
-                                                }
-                                            }
-                                            requestAnimationFrame(updateScore);
-                                        }, 300); // Start after 300ms delay
-                                    </script>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Scroll Hint -->
-                           <div style="margin-top: auto; margin-bottom: 40px; text-align: center; color: #ccc; animation: bounce 2s infinite;">
-                                <i class="fa-solid fa-chevron-down"></i>
-                            </div>
-                    </div>
-                `;
-
-                // --- Page 2: Detailed Analysis (Gauge + Metrics + Graphs) ---
-
-                // Mock Data for Graphs
-                const mockGraphWave = `M0,50 Q10,40 20,50 T40,50 T60,50 T80,50 T100,50 T120,50 T140,50 T160,50 T180,50 T200,50 T220,50 T240,50 T260,50 T280,50 T300,50`;
-                const wavePath = "M0,30 Q20,10 40,30 T80,30 T120,30 T160,30 T200,30 T240,30 T280,30 T320,30";
-
-                // Bars for FFT
-                let fftBars = '';
-                for (let i = 0; i < 30; i++) {
-                    let h = Math.random() * 40 + 10;
-                    if (data.healthScore < 80 && i > 25) h += 40; // High freq anomaly
-                    fftBars += `<rect x="${i * 10}" y="${100 - h}" width="6" height="${h}" fill="${themeColor}" opacity="0.6" rx="2" />`;
-                }
-
-                const page2Html = `
-                    <div class="report-page" id="report-page-2">
-                        <!-- Soul Gauge Section (Refactored: Side-by-Side) -->
-                        <div class="soul-gauge-section" style="margin-top: 0; padding-top: 0; display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 40px; padding-left: 20px;">
-                            <!-- Left: Gauge -->
-                            <div class="soul-ring-wrapper">
-                                <svg class="soul-ring" width="160" height="160">
-                                    <circle class="soul-ring-bg" stroke="#eee" stroke-width="8" fill="transparent" r="70" cx="80" cy="80"></circle>
-                                    <circle class="soul-ring-progress" stroke="${themeColor}" stroke-width="8" fill="transparent" r="70" cx="80" cy="80"
-                                        style="stroke-dasharray: 440; stroke-dashoffset: ${440 - (440 * data.healthScore / 100)};"></circle>
-                                </svg>
-                                <div class="soul-score">
-                                    <span class="score-val" style="color: ${themeColor}">${data.healthScore}</span>
-                                    <span class="score-label">AI 진단 점수</span>
-                                </div>
-                            </div>
-                            
-                            <!-- Right: Metrics (Vertical Layout for Side) -->
-                            <div class="soul-metrics" style="flex-direction: column; gap: 20px; align-items: flex-start;">
-                                <div class="s-metric" style="text-align: left;">
-                                    <span class="sm-label" style="font-size: 0.9rem;">효율</span>
-                                    <span class="sm-val" style="font-size: 1.4rem;">${data.efficiency}%</span>
-                                </div>
-                                <div class="sm-divider" style="width: 100%; height: 1px; background: rgba(0,0,0,0.05);"></div>
-                                <div class="s-metric" style="text-align: left;">
-                                    <span class="sm-label" style="font-size: 0.9rem;">수명</span>
-                                    <span class="sm-val" style="font-size: 1.4rem;">${data.lifespan}년</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="glass-panel">
-                            <!-- Title Removed as requested -->
-                            
-                            <!-- Graph 1: Time Domain -->
-                            <div class="graph-box" style="margin-bottom: 20px;">
-                                <span class="graph-label">주파수 파형 (Time Domain)</span>
-                                <svg width="100%" height="80" viewBox="0 0 320 80" style="background: rgba(0,0,0,0.02); border-radius: 12px;">
-                                    <path d="${wavePath}" fill="none" stroke="${themeColor}" stroke-width="2" />
-                                </svg>
-                            </div>
-
-                            <!-- Graph 2: FFT -->
-                            <div class="graph-box" style="margin-bottom: 20px;">
-                                <span class="graph-label">주파수 스펙트럼 (FFT)</span>
-                                <svg width="100%" height="100" viewBox="0 0 300 100" style="background: rgba(0,0,0,0.02); border-radius: 12px;">
-                                    ${fftBars}
-                                </svg>
-                            </div>
-
-                            <!-- Anomalies -->
-                            <div class="anomaly-box">
-                                <span class="graph-label">감지된 이상 주파수</span>
-                                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                                    ${data.healthScore < 90 ?
-                        `<span class="status-badge danger" style="position: relative; top:0; left:0; display: inline-block;">1.2kHz (베어링)</span>
-                                         <span class="status-badge warning" style="position: relative; top:0; left:0; display: inline-block;">60Hz (전원)</span>`
-                        : `<span class="status-badge safe" style="position: relative; top:0; left:0; display: inline-block; background: #E3F2FD; color: #5D9CEC;">이상 없음</span>`
+                history.forEach(record => {
+                    const entry = document.createElement('details');
+                    entry.className = 'scan-history-entry';
+                    const heading = document.createElement('summary');
+                    heading.textContent = new Date(record.createdAt).toLocaleString('ko-KR') +
+                        ' · ' + app.comparisonLabel(record.comparison);
+                    const condition = document.createElement('p');
+                    condition.textContent = record.point.label + ' · ' + record.condition;
+                    entry.append(heading, condition);
+                    app.renderComparison(entry, record.comparison);
+                    if (record.explanation) {
+                        const explanation = document.createElement('div');
+                        app.renderExplanation(explanation, record.explanation);
+                        entry.append(explanation);
                     }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                    container.append(entry);
+                });
 
-                // --- Page 3: Components & History ---
-                const page3Html = `
-                    <div class="report-page" id="report-page-3">
-                         <div class="glass-panel" style="margin-top: 20px;">
-                            <h3 class="panel-title">부품별 상태</h3>
-                            ${componentHtml}
-                        </div>
-
-                        <div class="glass-panel">
-                            <h3 class="panel-title">최근 점검 내역</h3>
-                            <div class="story-line">
-                                ${historyHtml}
-                            </div>
-                        </div>
-                         <!-- End message -->
-                        <div style="text-align: center; margin-top: 40px; opacity: 0.5;">
-                            <p style="font-size: 0.9rem;">리포트의 끝입니다.</p>
-                        </div>
-                    </div>
-                `;
-
-                const html = `
-                    <div class="emotional-container">
-                        <!-- Fixed Nav -->
-                        <div class="emotional-nav">
-                            <button onclick="app.router.navigate('management')"><i class="fa-solid fa-chevron-left"></i></button>
-                            <span class="nav-title">AI 분석 리포트</span>
-                        </div>
-
-                        <!-- Scroll Snap Container -->
-                        <div class="report-scroll-container">
-                            ${page1Html}
-                            ${page2Html}
-                            ${page3Html}
-                        </div>
-                    </div>
-                `;
-
-                if (container) container.innerHTML = html;
+                app.router.navigate('report');
             }
         }
     },
 
-    // Mock Data
-    data: {
-        equipment: {
-            'dn2100': {
-                name: 'DN Solutions Lynx 2100',
-                type: 'CNC 터닝 센터',
-                image: 'assets/equipment/DN Solutions Lynx 2100.png',
-                healthScore: 98,
-                lifespan: 12.5,
-                efficiency: 95,
-                nextCheck: '2026.04.15',
-                vibration: 0.8,
-                components: [
-                    { name: '스핀들 유닛', health: 96, replaceIn: '4년' },
-                    { name: '유압 척', health: 88, replaceIn: '2년' },
-                    { name: '서보 모터', health: 99, replaceIn: '5년+' }
-                ],
-                history: [
-                    { date: '2026.01.10', type: '정기 정밀 진단', result: '이상 없음 (진동 수치 양호)' },
-                    { date: '2025.10.05', type: '소모품 교체', result: '냉각수 펌프 필터 교체 완료' }
-                ]
-            },
-            'kf5600': {
-                name: '현대위아 KF5600 II',
-                type: '수직형 머시닝 센터',
-                image: 'assets/equipment/현대위아 KF5600 II.png',
-                healthScore: 82,
-                lifespan: 8.2,
-                efficiency: 89,
-                nextCheck: '2026.02.20',
-                vibration: 1.2,
-                components: [
-                    { name: 'ATC 매거진', health: 75, replaceIn: '1년' },
-                    { name: 'LM 가이드', health: 90, replaceIn: '10년' }
-                ],
-                history: [
-                    { date: '2026.01.15', type: '긴급 점검', result: '스핀들 진동 경고' },
-                    { date: '2025.08.12', type: '정기 점검', result: '정상 가동' }
-                ]
-            },
-            'ys080': {
-                name: '현대로보틱스 YS080',
-                type: '산업용 로봇',
-                image: 'assets/equipment/현대로보틱스 YS080.png',
-                healthScore: 94,
-                lifespan: 15.0,
-                efficiency: 92,
-                nextCheck: '2026.05.01',
-                vibration: 0.5,
-                components: [
-                    { name: '감속기 (J1)', health: 92, replaceIn: '3년' },
-                    { name: '서보 앰프', health: 98, replaceIn: '7년' }
-                ],
-                history: [
-                    { date: '2026.01.20', type: 'AI 진단 리포트', result: '매우 안정적 (궤적 오차 0.01mm)' }
-                ]
-            },
-            'as50': {
-                name: '경원기계 AS-50',
-                type: '에어 컴프레서',
-                image: 'assets/equipment/경원기계 AS-50.png',
-                healthScore: 45,
-                lifespan: 1.5,
-                efficiency: 72,
-                nextCheck: '2026.02.15',
-                vibration: 3.8,
-                components: [
-                    { name: '에어엔드', health: 40, replaceIn: '즉시 교체 권장' },
-                    { name: '흡입 밸브', health: 60, replaceIn: '1년' }
-                ],
-                history: [
-                    { date: '2026.02.10', type: '경고 알림', result: '토출 온도 과열 및 이상 소음' },
-                    { date: '2025.12.01', type: '정기 점검', result: '오일 누유 확인됨' }
-                ]
-            }
-        }
+    comparisonLabel({ status }) {
+        return status === 'different' ? '가동음 변화 감지' : '정상 기준과 유사';
     },
 
-    // UI Helpers
-    ui: {
-        history: [
-            { id: 1, name: 'Pump #03', status: 'normal', date: '14:20' },
-            { id: 2, name: 'Fan #12', status: 'danger', date: '11:05' },
-            { id: 3, name: 'Motor #01', status: 'normal', date: '09:30' }
-        ],
+    renderComparison(container, comparison) {
+        const card = document.createElement('section');
+        card.className = 'glass-card fft-summary';
+        const heading = document.createElement('h3');
+        heading.textContent = 'FFT 비교 결과';
+        const peak = document.createElement('p');
+        peak.textContent = '대표 주파수 · ' + Math.round(comparison.baselinePeakHz) + ' → ' +
+            Math.round(comparison.currentPeakHz) + ' Hz';
+        const level = document.createElement('p');
+        level.textContent = '기준 대비 전체 녹음 레벨 · ' + this.signedDb(comparison.rmsChangeDb);
+        card.append(heading, peak, level);
 
-        renderHistoryList() {
-            const list = document.getElementById('history-list');
-            if (list) {
-                list.innerHTML = this.history.map(item => `
-                    <div class="history-item ${item.status === 'danger' ? 'danger' : ''}">
-                        <div>
-                            <strong>${item.name}</strong>
-                            <div style="font-size: 0.8rem; color: #94a3b8;">${item.date} 점검</div>
-                        </div>
-                        <span style="color: ${item.status === 'danger' ? '#ef4444' : '#10b981'}; font-weight: 600;">
-                            ${item.status === 'danger' ? '위험' : '정상'}
-                        </span>
-                    </div>
-                `).join('');
+        const bands = document.createElement('ul');
+        comparison.bandChanges.slice(0, 3).forEach(band => {
+            const row = document.createElement('li');
+            row.textContent = Math.round(band.frequencyHz) + ' Hz 중심 대역 · ' + this.signedDb(band.changeDb);
+            bands.append(row);
+        });
+        if (bands.childElementCount) card.append(bands);
+        container.append(card);
+    },
+
+    signedDb(value) {
+        return (value > 0 ? '+' : '') + value.toFixed(1) + ' dB';
+    },
+
+    renderExplanation(container, explanation) {
+        const summary = document.createElement('p');
+        summary.textContent = explanation.summary;
+        container.replaceChildren(summary);
+
+        for (const [headingText, items] of [
+            ['관측된 변화', explanation.observations],
+            ['확인할 항목', explanation.nextChecks]
+        ]) {
+            if (!items.length) continue;
+            const heading = document.createElement('h4');
+            heading.textContent = headingText;
+            const list = document.createElement('ul');
+            for (const item of items) {
+                const row = document.createElement('li');
+                row.textContent = item;
+                list.append(row);
             }
-        },
-
-        addHistory(isSafe) {
-            this.history.unshift({
-                id: Date.now(),
-                name: 'Test Device',
-                status: isSafe ? 'normal' : 'danger',
-                date: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
-            });
-            // Keep only recent 5
-            if (this.history.length > 5) this.history.pop();
+            container.append(heading, list);
         }
     }
 };
 
-// Start App
 document.addEventListener('DOMContentLoaded', () => {
-    app.router.init();
+    const home = app.views.home;
+    const equipment = document.getElementById('scan-equipment');
+    const pointEquipment = document.getElementById('point-equipment');
+    for (const [id, name] of Object.entries(app.equipment)) {
+        pointEquipment.add(new Option(name, id));
+    }
+    equipment.addEventListener('change', () => home.selectPoint(equipment.value));
+    document.getElementById('add-point-form').addEventListener('submit', event => {
+        event.preventDefault();
+        const input = document.getElementById('point-label');
+        const status = document.getElementById('point-status');
+        try {
+            const point = app.points.add(pointEquipment.value, input.value.trim());
+            home.selectPoint(point.id);
+            input.value = '';
+            status.textContent = point.label + ' 측정 위치를 등록했습니다.';
+        } catch (error) {
+            status.textContent = error.message;
+        }
+    });
+    document.getElementById('copy-tag-link').addEventListener('click', async () => {
+        const link = document.getElementById('tag-link');
+        const status = document.getElementById('tag-link-status');
+        try {
+            await navigator.clipboard.writeText(link.value);
+            status.textContent = '측정 위치 링크를 복사했습니다.';
+        } catch {
+            link.select();
+            status.textContent = '선택한 링크를 복사해 NFC 스티커에 기록하세요.';
+        }
+    });
+    document.getElementById('start-tag-scan').onclick = () => home.scanTag();
+    document.getElementById('write-tag').onclick = () => home.writeTag();
+    document.getElementById('start-tag-measurement').onclick = () => home.start('check');
+    const condition = document.getElementById('baseline-condition');
+    condition.addEventListener('input', () => condition.setCustomValidity(''));
+    document.getElementById('baseline-form').addEventListener('submit', event => {
+        event.preventDefault();
+        home.start('baseline');
+    });
+    document.getElementById('start-check').onclick = () => home.start('check');
+    document.getElementById('replace-baseline').onclick = () => {
+        home.refresh(true);
+        condition.focus();
+    };
+    document.getElementById('retry-recording').onclick = () => app.views.measurement.start();
+    document.getElementById('cancel-recording').onclick = () => app.router.navigate('home');
+
+    app.router.navigate('home');
+    const taggedPoint = EquipmentNFC.readPointFromUrl(location.href);
+    if (taggedPoint) {
+        try {
+            home.handleTag(taggedPoint, location.href);
+        } catch (error) {
+            home.status(error.message);
+        }
+    }
 });

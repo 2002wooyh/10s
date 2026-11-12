@@ -3001,3 +3001,336 @@ body {
 .anomaly-box {
     margin-bottom: 10px;
 }
+/* Live microphone measurement and results */
+#app-container [hidden] {
+    display: none !important;
+}
+
+#app-container {
+    height: 100dvh;
+}
+
+#app-container:has(#view-measurement.active) .bottom-nav,
+#app-container:has(#view-result.active) .bottom-nav,
+#app-container:has(#view-report.active) .bottom-nav {
+    display: none;
+}
+
+.scan-home {
+    min-height: 0;
+    overflow-y: auto;
+    align-items: center;
+    padding: 12px 10px 108px;
+}
+
+.home-tag-scan {
+    width: 100%;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0 20px;
+    text-align: center;
+}
+
+.home-tag-scan .nfc-wrapper {
+    width: min(220px, 66vw);
+    height: auto;
+    aspect-ratio: 1;
+    flex-shrink: 0;
+}
+
+.home-tag-scan .nfc-btn {
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.home-tag-scan .nfc-btn:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 6px;
+}
+
+.home-tag-scan .nfc-btn:disabled {
+    cursor: wait;
+}
+
+.home-tag-scan .nfc-btn img {
+    display: block;
+    width: 64%;
+    height: auto;
+}
+
+.home-tag-scan h2 {
+    margin-top: 25px;
+    font-size: 1.5rem;
+}
+
+.home-tag-scan #nfc-status {
+    max-width: 28ch;
+    min-height: 2.9em;
+    margin: 8px 0 0;
+}
+
+.tag-ready {
+    width: min(100%, 340px);
+    margin-top: 12px;
+    padding: 10px 12px 12px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid #dbe5ee;
+    border-radius: 14px;
+}
+
+.tag-ready .scan-help {
+    margin: 0;
+}
+
+.tag-ready .btn-primary {
+    margin-top: 8px;
+}
+
+.scan-controls {
+    width: 100%;
+    max-width: 340px;
+    flex-shrink: 0;
+    border: 1px solid #dbe5ee;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.scan-controls summary {
+    padding: 12px 14px;
+    line-height: 1.5;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scan-settings {
+    padding: 5px 14px 14px;
+}
+
+.scan-controls label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.scan-controls select,
+.scan-controls input {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid #c9d0d4;
+    border-radius: 8px;
+    background: white;
+    color: var(--text-main);
+    padding: 8px 12px;
+    font: inherit;
+}
+
+.scan-controls .btn-primary {
+    margin-top: 10px;
+}
+
+.scan-help {
+    margin: 12px 0 16px;
+    font-size: 0.88rem;
+    color: var(--text-sub);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.scan-secondary {
+    min-height: 42px;
+    background: transparent;
+    color: inherit;
+    padding: 8px 12px;
+    border: 1px solid currentColor;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+}
+
+.scan-controls .scan-secondary {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.add-point-settings {
+    border-top: 1px solid #dbe5ee;
+    border-bottom: 1px solid #dbe5ee;
+}
+
+.add-point-settings summary {
+    padding-inline: 0;
+}
+
+.add-point-settings form label:not(:first-child) {
+    margin-top: 10px;
+}
+
+#point-status:empty {
+    display: none;
+}
+
+.tag-link-settings {
+    padding-top: 14px;
+}
+
+.tag-link-row {
+    display: flex;
+    gap: 8px;
+}
+
+.tag-link-row input {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.85rem;
+}
+
+.scan-controls .tag-link-row .scan-secondary {
+    width: auto;
+    margin-top: 0;
+    flex-shrink: 0;
+}
+
+@media (max-height: 680px) {
+    .home-tag-scan .nfc-wrapper {
+        width: min(188px, 64vw);
+    }
+
+    .home-tag-scan {
+        padding-top: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-tag-scan .wave {
+        animation: none;
+    }
+}
+
+.recording-panel {
+    cursor: default;
+    color: white;
+    padding: 20px 0 65px;
+}
+
+.recording-panel #progress-text {
+    min-height: 3em;
+    max-width: 320px;
+    text-align: center;
+    line-height: 1.5;
+    margin: 22px 8px 8px;
+    z-index: 10;
+}
+
+.recording-actions {
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+#view-result .result-container {
+    justify-content: flex-start;
+    padding: 28px 20px;
+    overflow-y: auto;
+}
+
+#view-result .result-content-wrapper {
+    gap: 14px;
+    overflow-wrap: anywhere;
+}
+
+#view-result .status-headline {
+    font-size: 1.8rem;
+}
+
+#view-result .status-icon-large {
+    font-size: 2.5rem;
+    margin-bottom: 0;
+}
+
+#fft-result,
+.ai-explanation {
+    width: 100%;
+}
+
+.fft-summary,
+.ai-explanation,
+.scan-history-entry {
+    text-align: left;
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+#view-report {
+    height: 100%;
+}
+
+#view-report .app-header {
+    display: flex;
+}
+
+#view-report .report-main {
+    padding: 16px 8px 28px !important;
+    min-height: 0;
+    height: auto;
+}
+
+.fft-summary,
+.ai-explanation {
+    padding: 16px;
+    gap: 6px;
+}
+
+.fft-summary ul,
+.ai-explanation ul,
+.scan-history-entry ul {
+    padding-left: 1.2em;
+}
+
+.ai-explanation h4,
+.scan-history-entry h4 {
+    margin-top: 8px;
+}
+
+#explanation-status:empty,
+#explanation-details:empty {
+    display: none;
+}
+
+.storage-warning {
+    font-size: 0.88rem;
+    color: #592b24;
+}
+
+.scan-history-entry {
+    margin: 12px 0;
+    padding: 12px;
+    border: 1px solid #dbe1e4;
+    border-radius: 10px;
+    overflow-wrap: anywhere;
+}
+
+.scan-history-entry summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.scan-history-entry > p,
+.scan-history-entry > div {
+    margin-top: 10px;
+}
+
+.measured-equipment-item {
+    width: 100%;
+    font: inherit;
+    color: var(--text-main);
+    text-align: left;
+    border: none;
+    cursor: pointer;
+}
