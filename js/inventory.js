@@ -34,6 +34,7 @@
     }
 
     function reportStatus(report) {
+        if (report?.statusLabel === '분석 완료') return 'completed';
         return statuses.includes(report?.status) ? report.status : 'pending';
     }
 

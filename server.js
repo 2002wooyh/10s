@@ -59,7 +59,7 @@ const CHAT_INSTRUCTIONS = [
     'illustrativeAssessment는 설정된 보고서 내용으로 measuredAudio와 구분합니다. 답변에서 점수는 scoreLabel, 가스 기준은 비교 기준, 유량과 스패터 횟수는 추정값으로 표현하세요. 점수 산식이나 항목별 감점 수치는 제시하지 마세요.',
     'illustrativeAssessment.conditions의 전류, 전압, 와이어 송급속도, CTWD, 용접 속도와 가스 유량은 리포트에 표시된 추정값입니다. 실측값이나 FFT에서 검증한 값으로 설명하지 말고, 단위를 함께 쓰세요. 실제 설정은 장비 표시나 작업 기록으로 확인하도록 안내하세요.',
     '조건을 설명할 때는 각 항목의 value, unit, status를 그대로 사용하세요. 상태 표시는 이 리포트의 비교 기준을 따릅니다. 장비나 공정에 보편적으로 적용할 합격 기준처럼 표현하지 마세요.',
-    '아크 불안정은 우선 확인할 징후입니다. 스패터는 동반될 수 있는 현상이며, 녹음만으로 발생이나 횟수를 확인하지 못합니다. 작업 영상이나 전류·전압 기록으로 아크 상태를, 비드 사진으로 험핑 가능성을 확인하도록 안내하세요.',
+    '첫 점검 항목은 illustrativeAssessment.priorityCheck를 따르세요. 스패터는 아크 불안정에 동반될 수 있는 현상이며, 녹음만으로 발생이나 횟수를 확인하지 못합니다. 작업 영상이나 전류·전압 기록으로 아크 상태를, 비드 사진으로 험핑 가능성을 확인하도록 안내하세요.',
     '가스 대역의 실제 최대 피크와 비교 기준 사이의 차이는 dB로 표시하세요. 이 차이로 가스 유량을 환산하거나 결함을 확정하지 마세요.',
     '수치는 Hz 또는 kHz와 디지털 레벨 dBFS로 표시하세요. 대역 최대값은 전체 대역 에너지나 음압(dB SPL)과 다릅니다.',
     '주파수만으로 결함·마모·설비 안전 여부를 확정하거나 정상 운전으로 판정하지 마세요. 필요한 경우 동일한 운전 조건의 반복 측정과 정상 기준 비교를 제안하세요.',
@@ -100,7 +100,8 @@ function weldingChatContext(signal, assessment) {
             scoreLabel: assessment.scoreLabel,
             conditions: assessment.conditions.map(({ key, label, value, unit, status }) => ({ key, label, value, unit, status })),
             gas: { ...assessment.gas, changeFromExampleDb: assessment.gasChangeDb(signal) },
-            arcStability: '아크 불안정 가능성 우선 확인',
+            priorityCheck: assessment.priorityCheck,
+            arcStability: '작업 영상과 전류·전압 기록으로 아크 상태 확인',
             spatter: assessment.spatter,
             humping: '비드 형상 확인 필요'
         }

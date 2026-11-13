@@ -14,7 +14,7 @@
     function graphFrame({ name, unit, xTicks, yTicks, content }) {
         const { left, right, bottom } = outline;
         return `<svg class="weld-plot" viewBox="0 0 320 159" role="img" aria-label="${escape(name)}">
-            <text class="weld-axis-label" x="${left}" y="11">${escape(unit)}</text>
+            <text class="weld-axis-label" x="${left}" y="12">${escape(unit)}</text>
             ${yTicks.slice(0, -1).map(([position]) => `<line class="weld-grid" x1="${left}" x2="${right}" y1="${position}" y2="${position}"></line>`).join('')}
             ${yTicks.map(([position, label]) => `<text class="weld-axis-label" x="${left - 5}" y="${position + 3}" text-anchor="end">${label}</text>`).join('')}
             <line class="weld-axis" x1="${left}" x2="${right}" y1="${bottom}" y2="${bottom}"></line>
@@ -62,14 +62,13 @@
         return `<svg class="weld-plot" data-weld-fft data-start="0" data-end="${end}" viewBox="0 0 320 159"
             role="img" aria-label="녹음의 FFT 스펙트럼, 0에서 ${end} Hz 구간">
             <defs><clipPath id="weld-fft-clip"><rect x="${left}" y="${top}" width="${right - left}" height="${bottom - top}"></rect></clipPath></defs>
-            <text class="weld-axis-label" x="${right}" y="11" text-anchor="end">디지털 레벨 (dBFS)</text>
+            <text class="weld-axis-label" x="${right}" y="12" text-anchor="end">디지털 레벨 (dBFS)</text>
             ${[high, (high + low) / 2, low].map(value => `<text class="weld-axis-label" x="${left - 5}" y="${y(value) + 3}" text-anchor="end">${value}</text>`).join('')}
             ${[high, (high + low) / 2].map(value => `<line class="weld-grid" x1="${left}" x2="${right}" y1="${y(value)}" y2="${y(value)}"></line>`).join('')}
             <line class="weld-axis" x1="${left}" x2="${right}" y1="${bottom}" y2="${bottom}"></line>
-            ${[0, 1, 2, 3].map(index => {
-                const value = end * index / 3;
-                const anchor = index === 0 ? 'start' : index === 3 ? 'end' : 'middle';
-                return `<text class="weld-axis-label" x="${x(value)}" y="149" text-anchor="${anchor}">${number.format(Math.round(value))}${index === 3 ? ' Hz' : ''}</text>`;
+            ${[0, 5000, 10000, 15000, end].map(value => {
+                const anchor = value === 0 ? 'start' : value === end ? 'end' : 'middle';
+                return `<text class="weld-axis-label" x="${x(value)}" y="149" text-anchor="${anchor}">${number.format(value)}${value === end ? ' Hz' : ''}</text>`;
             }).join('')}
             <g clip-path="url(#weld-fft-clip)">
                 <path class="weld-spectrum-fill" d="${area}"></path>
@@ -80,30 +79,32 @@
         </svg>`;
     }
 
-    const scoreSummary = '보호가스가 많이 흐르고 아크가 불안정했을 가능성이 있어요. 용접선이 고르게 이어졌는지도 살펴보세요.';
-    const nextChecks = [
-        ['유량계부터 확인해요', '작업 중 유량계 값이 작업 기준보다 높았는지 살펴보세요.'],
-        ['용접선과 주변을 살펴봐요', '튀어 붙은 금속 방울과 용접선이 물결처럼 솟은 곳이 있는지 확인해요.'],
-        ['같은 조건에서 다시 비교해요', '다음에도 같은 위치에서 소리를 기록하면 달라진 부분을 찾기 쉬워요.']
-    ];
+    const bandLabel = ([low, high]) => `${number.format(low)}–${number.format(high)} Hz`;
+
+    function nextChecks({ priorityCheck }) {
+        return [
+            [priorityCheck.title, priorityCheck.detail],
+            ['용접선과 주변을 살펴봐요', '튀어 붙은 금속 방울과 용접선이 물결처럼 솟은 곳이 있는지 확인해요.'],
+            ['같은 조건에서 다시 비교해요', '다음에도 같은 위치에서 소리를 기록하면 달라진 부분을 찾기 쉬워요.']
+        ];
+    }
 
     function findings(signal, assessment) {
         const { gas, spatter } = assessment;
-        const band = ([low, high]) => `${number.format(low)}–${number.format(high)} Hz`;
         const gasChange = assessment.gasChangeDb(signal);
         return [
             {
                 key: 'gas', name: '보호가스 유량',
                 heading: '가스가 기준보다 많이 흐른 것으로 보여요',
-                metric: `${band(gas.band)} · 비교 기준보다 +${number.format(gasChange)} dB`,
+                metric: `${bandLabel(gas.band)} · 비교 기준보다 +${number.format(gasChange)} dB`,
                 copy: `이 음역대의 소리가 비교 기준보다 컸어요. 보호가스는 기준보다 ${gas.estimatedFlow - gas.referenceFlow} L/min 더 흘렀을 가능성이 있어요.`,
                 comparison: [gas.referenceFlow, gas.estimatedFlow, 'L/min'],
-                action: '작업 기준과 유량계에 표시된 값을 비교해 보세요.'
+                action: assessment.priorityCheck.detail
             },
             {
                 key: 'spatter', name: '아크 안정성',
                 heading: '아크가 불안정해요',
-                metric: `${band(spatter.band)} · 아크 안정성 분석 대역`,
+                metric: `${bandLabel(spatter.band)} · 아크 안정성 분석 대역`,
                 copy: '아크는 금속을 녹이는 전기 불꽃이에요. 높은 음역대의 소리로 볼 때 불꽃이 고르지 않았을 가능성이 있어요. 이때 스패터라고 부르는 작은 금속 방울도 튀었을 수 있어요.',
                 comparison: [spatter.referenceCount, spatter.estimatedCount, '회'],
                 action: '용접선 주변의 작은 방울 자국을 확인해 보세요.'
@@ -129,13 +130,13 @@
         <p class="weld-player-status" data-weld-player-status role="status" hidden></p>`;
     }
 
-    function scoreCard({ score, maxScore, scoreLabel }, signal) {
+    function scoreCard({ score, maxScore, scoreLabel, priorityCheck }, signal) {
         return `<section class="weld-score" data-weld-score aria-labelledby="weld-score-title">
             <p class="weld-score-label" id="weld-score-title">${scoreLabel}</p>
             <p class="weld-score-value"><strong>${score}</strong><span>/ ${maxScore}점</span></p>
             <div class="weld-score-track" aria-hidden="true" style="--score:${100 * score / maxScore}%"><i></i></div>
             <div class="weld-score-scale" aria-hidden="true"><span>0</span><span>${maxScore / 2}</span><span>${maxScore}</span></div>
-            <div class="weld-score-summary"><h3>용접 조건을 한 번 더 확인해요</h3><p>${scoreSummary}</p></div>
+            <div class="weld-score-summary"><h3>${priorityCheck.title}</h3><p>${priorityCheck.detail}</p></div>
             ${recordingPlayer(signal)}
         </section>`;
     }
@@ -195,7 +196,7 @@
                 <i class="weld-shimmer weld-skeleton-score-scale"></i>
                 <div class="weld-score-summary">
                     <i class="weld-shimmer weld-skeleton-heading"></i>
-                    <i class="weld-shimmer weld-skeleton-copy"></i>
+                    <div class="weld-skeleton-copy"><i class="weld-shimmer"></i><i class="weld-shimmer"></i></div>
                 </div>
                 <div class="weld-player"><i class="weld-shimmer"></i><i class="weld-shimmer"></i></div>
             </section>
@@ -234,8 +235,8 @@
                 <p>10초 녹음을 낮은 소리부터 높은 소리까지 나눠봤어요.</p>
                 <figure class="weld-chart">${spectrum(signal, assessment)}
                     <figcaption class="weld-band-legend">
-                        <span><i class="weld-band-gas"></i>보호가스 분석 대역</span>
-                        <span><i class="weld-band-spatter"></i>아크 안정성 분석 대역</span>
+                        <span><i class="weld-band-gas" aria-hidden="true"></i><span>보호가스 대역 <small>${bandLabel(assessment.gas.band)}</small></span></span>
+                        <span><i class="weld-band-spatter" aria-hidden="true"></i><span>아크 안정성 대역 <small>${bandLabel(assessment.spatter.band)}</small></span></span>
                     </figcaption>
                 </figure>
                 <div class="weld-fft-note">
@@ -251,7 +252,7 @@
             </section>
             <section class="weld-next">
                 <h3>다음 점검은 이렇게 해보세요</h3>
-                <ul>${nextChecks.map(([name, copy]) => `<li><strong>${name}</strong><p>${copy}</p></li>`).join('')}</ul>
+                <ul>${nextChecks(assessment).map(([name, copy]) => `<li><strong>${name}</strong><p>${copy}</p></li>`).join('')}</ul>
             </section>
             <div class="weld-actions">
                 ${canRepeat ? `<button class="btn-secondary" type="button" data-action="remeasure" data-id="${escape(report.deviceId)}">다시 측정</button>` : ''}
@@ -327,7 +328,7 @@
         const signal = globalThis.WeldingSignal;
         const assessment = globalThis.WeldingCase;
         return [
-            `${assessment.scoreLabel} ${assessment.score}/${assessment.maxScore}점`, scoreSummary,
+            `${assessment.scoreLabel} ${assessment.score}/${assessment.maxScore}점`, assessment.priorityCheck.title, assessment.priorityCheck.detail,
             '', '용접 조건 (추정)',
             ...assessment.conditions.map(condition => `${condition.label} · ${conditionValue(condition)} ${condition.unit} · ${condition.status}`),
             '',
@@ -338,7 +339,7 @@
                 item.comparison && `${item.key === 'spatter' ? '스패터 횟수 · ' : ''}비교 기준 ${item.comparison[0]} ${item.comparison[2]} · 추정 ${item.comparison[1]} ${item.comparison[2]}`,
                 item.action
             ].filter(Boolean)),
-            '', '다음 점검', ...nextChecks.map(([name, copy]) => `${name} · ${copy}`)
+            '', '다음 점검', ...nextChecks(assessment).map(([name, copy]) => `${name} · ${copy}`)
         ];
     }
 

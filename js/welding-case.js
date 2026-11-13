@@ -8,6 +8,10 @@
     const gas = Object.freeze({
         band: Object.freeze([1800, 2600]), referenceDbFS: -61, referenceFlow: 15, estimatedFlow: 37
     });
+    const priorityCheck = Object.freeze({
+        title: '보호가스 유량을 먼저 확인해요',
+        detail: '유량계에 표시된 값이 작업 기준보다 높은지 확인해 보세요.'
+    });
     const spatter = Object.freeze({ band: Object.freeze([5000, 8000]), referenceCount: 3, estimatedCount: 8 });
     const conditions = Object.freeze([
         { key: 'current', label: '용접 전류', value: 150, unit: 'A', status: '적정', tone: 'good' },
@@ -31,7 +35,7 @@
 
     globalThis.WeldingCase = Object.freeze({
         score: maxScore - Object.values(deductions).reduce((total, value) => total + value, 0),
-        maxScore, scoreLabel: '종합 점수', gas, spatter, conditions,
+        maxScore, scoreLabel: '종합 점수', gas, spatter, conditions, priorityCheck,
         humping: Object.freeze({ deduction: deductions.humping }), deductions, gasPeak, gasChangeDb
     });
 })();

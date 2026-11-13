@@ -105,7 +105,7 @@
 
     const weldingReportCopy = {
         statusLabel: '분석 완료',
-        summary: '보호가스 유량과 스패터를 살펴보고, 용접선에 험핑이 있는지 확인해 보세요.'
+        summary: '보호가스 유량을 먼저 확인해요. 그다음 용접선과 주변에 튀어 붙은 금속 방울이나 물결처럼 솟은 부분이 있는지 살펴보세요.'
     };
 
     let sessionState = null;

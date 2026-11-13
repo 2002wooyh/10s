@@ -114,6 +114,11 @@
     white-space: nowrap;
 }
 .inventory-status.stable { color: #1a644b; background: #e5f5ee; }
+.inventory-status.completed {
+    color: var(--blue-deep);
+    background: #f3f8ff;
+    box-shadow: inset 0 0 0 1px #bad9fa;
+}
 .inventory-status.attention { color: #6e4a11; background: #fff2db; }
 .inventory-status.check { color: #954126; background: #ffede4; }
 .inventory-detail-story { display: grid; gap: var(--ui-section-gap); }

@@ -299,7 +299,7 @@
 
     function setHomeScanActive(active) {
         homeScreen.classList.toggle('is-scanning', active);
-        scanButton.setAttribute('aria-label', active ? '점검 취소' : '점검 시작');
+        scanButton.setAttribute('aria-label', active ? '가동음 점검 취소' : '가동음 점검 시작');
     }
 
     function stopDemo() {
