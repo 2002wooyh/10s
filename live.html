@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>10초만</title>
+    <link rel="shortcut icon" href="assets/icon-512.png" type="image/x-icon">
+    <link rel="icon" href="assets/icon-512.png" type="image/png">
+    <link rel="icon" sizes="192x192" href="assets/icon-512.png">
+    <link rel="apple-touch-icon" href="assets/icon-512.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700&family=Noto+Sans+KR:wght@700;900&family=Black+Han+Sans&family=Gowun+Batang:wght@400;700&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Open Graph / Link Preview -->
+    <meta property="og:title" content="10초만 - 설비 이상 징후 탐지 앱">
+    <meta property="og:description" content="설비 가동음을 10초간 측정해 정상 기준과 비교합니다.">
+    <meta property="og:image"
+        content="https://raw.githubusercontent.com/yoon-castle/industry-safety-app/main/assets/icon-512.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image"
+        content="https://raw.githubusercontent.com/yoon-castle/industry-safety-app/main/assets/icon-512.png">
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <div id="app-container">
+        <!-- Splash Screen -->
+        <section id="view-splash" class="view active">
+            <div class="splash-content">
+                <div class="logo-container">
+                    <img src="assets/icon.svg" alt="App Icon" style="width: 80px; height: 80px; margin-bottom: 20px;">
+                    <!-- Master Logo -->
+                    <img src="assets/logo_master.svg" alt="10초만 Logo"
+                        style="height: 70px; display: block; margin: 0 auto;">
+                </div>
+                <div class="loader"></div>
+            </div>
+        </section>
+
+        <!-- Onboarding -->
+        <section id="view-onboarding" class="view">
+            <div class="onboarding-step">
+                <div class="anim-container" id="onboarding-anim">
+                    <!-- Dynamic Icon Animation will go here -->
+                    <i class="fa-solid fa-mobile-screen-button bounce"></i>
+                </div>
+                <h2>Easy Check</h2>
+                <p>설비 선택 · 정상 기준 등록 · 10초 측정</p>
+                <button class="btn-primary" onclick="app.router.navigate('home')">시작하기</button>
+            </div>
+        </section>
+
+        <!-- Main Hub (Home) -->
+        <section id="view-home" class="view">
+            <header class="app-header">
+                <img src="assets/logo_master.svg" alt="10초만 Logo" style="height: 50px; border: none;">
+            </header>
+
+            <main class="scan-home">
+                <section class="home-tag-scan" aria-labelledby="tag-scan-title">
+                    <div class="nfc-wrapper">
+                        <span class="wave" aria-hidden="true"></span>
+                        <span class="wave" aria-hidden="true"></span>
+                        <button id="start-tag-scan" class="nfc-btn" type="button"
+                            aria-label="NFC 태그로 측정" aria-describedby="nfc-status">
+                            <img src="assets/icon_bars.svg" alt="" width="140" height="140">
+                        </button>
+                    </div>
+                    <h2 id="tag-scan-title">NFC 태그로 측정</h2>
+                    <p id="nfc-status" class="scan-help" role="status">버튼을 누른 뒤 설비의 NFC 스티커에 태그하세요.</p>
+                    <div id="tag-ready" class="tag-ready" hidden>
+                        <p id="tag-ready-info" class="scan-help"></p>
+                        <button id="start-tag-measurement" class="btn-primary" type="button">가동음 10초 측정 시작</button>
+                    </div>
+                </section>
+                <details id="manual-scan" class="scan-controls">
+                    <summary>측정 위치 설정 · 수동 측정</summary>
+                    <div class="scan-settings">
+                        <label for="scan-equipment">설비·측정 위치</label>
+                        <select id="scan-equipment"></select>
+                        <p id="baseline-info" class="scan-help" aria-live="polite"></p>
+                        <form id="baseline-form" hidden>
+                            <label for="baseline-condition">정상 운전 조건</label>
+                            <input id="baseline-condition" maxlength="100" required
+                                placeholder="예: 무부하, 1,200 rpm">
+                            <button class="btn-primary" type="submit">정상 가동음 10초 등록</button>
+                        </form>
+                        <button id="start-check" class="btn-primary" type="button" hidden>가동음 10초 측정</button>
+                        <button id="replace-baseline" class="scan-secondary" type="button" hidden>정상 기준 다시 등록</button>
+                        <p class="scan-help">스티커를 붙인 위치에서 기준과 같은 거리와 방향으로 측정하세요.</p>
+                        <details class="add-point-settings">
+                            <summary>측정 위치 추가</summary>
+                            <form id="add-point-form">
+                                <label for="point-equipment">설비</label>
+                                <select id="point-equipment" required></select>
+                                <label for="point-label">측정 위치 이름</label>
+                                <input id="point-label" maxlength="60" required placeholder="예: 모터 외함 오른쪽">
+                                <button class="btn-primary" type="submit">측정 위치 저장</button>
+                            </form>
+                            <p id="point-status" class="scan-help" role="status"></p>
+                        </details>
+                        <div class="tag-link-settings">
+                            <label for="tag-link">이 위치의 NFC 스티커 기록용 링크</label>
+                            <div class="tag-link-row">
+                                <input id="tag-link" type="text" readonly>
+                                <button id="copy-tag-link" class="scan-secondary" type="button">링크 복사</button>
+                            </div>
+                            <button id="write-tag" class="scan-secondary" type="button" hidden>NFC 스티커에 쓰기</button>
+                            <p id="tag-link-status" class="scan-help" role="status"></p>
+                        </div>
+                    </div>
+                </details>
+            </main>
+        </section>
+
+        <!-- Measurement -->
+        <section id="view-measurement" class="view">
+            <!-- Invisible Header for Spacing Alignment -->
+            <header class="app-header" style="opacity: 0; pointer-events: none;">
+                <img src="assets/logo_master.svg" alt="10초만 Logo" style="height: 50px; border: none;">
+            </header>
+
+            <main style="display: flex; flex-direction: column; justify-content: center; width: 100%; flex: 1;">
+                <div class="measurement-content"
+                    style="width: 100%; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <!-- Ripple Animation Reused -->
+                    <div class="nfc-scan-area recording-panel">
+                        <div class="nfc-wrapper">
+                            <!-- Progress Ring SVG -->
+                            <svg class="progress-ring" width="240" height="240">
+                                <circle class="progress-ring__circle" stroke="#ffffff" stroke-width="8"
+                                    fill="transparent" r="110" cx="120" cy="120" />
+                            </svg>
+
+                            <!-- More active waves for measurement -->
+                            <div class="wave" style="animation-duration: 2s; background: rgba(255, 255, 255, 0.2);">
+                            </div>
+                            <div class="wave"
+                                style="animation-delay: 0.5s; animation-duration: 2s; background: rgba(255, 255, 255, 0.1);">
+                            </div>
+                            <div class="wave"
+                                style="animation-delay: 1.0s; animation-duration: 2s; background: rgba(255, 255, 255, 0.05);">
+                            </div>
+
+                            <div class="nfc-btn"
+                                style="background: white; color: #00c6ff; box-shadow: 0 0 30px rgba(255,255,255,0.3);">
+                                <img src="assets/icon_bars.svg" alt="Scan Icon"
+                                    style="width: 140px; height: 140px; filter: invert(39%) sepia(93%) saturate(1914%) hue-rotate(198deg) brightness(102%) contrast(106%);">
+                                <!-- Filter to match blue #00c6ff roughly -->
+                            </div>
+                        </div>
+
+                        <p id="progress-text" role="status">마이크 연결을 기다리고 있습니다</p>
+                        <div class="recording-actions">
+                            <button id="retry-recording" class="scan-secondary" type="button" hidden>다시 측정</button>
+                            <button id="cancel-recording" class="scan-secondary" type="button">취소</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </section>
+
+        <!-- Diagnosis Result -->
+        <section id="view-result" class="view">
+            <div class="result-header">
+                <button class="btn-back" aria-label="홈으로" onclick="app.router.navigate('home')"><i
+                        class="fa-solid fa-chevron-left"></i></button>
+                <h2>측정 결과</h2>
+            </div>
+            <div class="result-content" id="result-content">
+                <!-- Dynamic Content: Safe or Danger -->
+            </div>
+        </section>
+
+        <!-- Management -->
+        <section id="view-management" class="view">
+            <header class="app-header">
+                <!-- Back button removed -->
+                <h2>내 장비 현황</h2>
+            </header>
+            <main class="management-main">
+                <div class="equipment-grid">
+                    <!-- Card 1 -->
+                    <div class="equip-card" data-equipment="dn2100" onclick="app.views.report.show('dn2100')">
+                        <div class="equip-img-wrapper">
+                            <img src="assets/equipment/DN Solutions Lynx 2100.png" alt="DN Solutions Lynx 2100">
+                            <span class="status-badge">미측정</span>
+                        </div>
+                        <div class="equip-info">
+                            <h3>DN Solutions Lynx 2100</h3>
+                            <p>CNC 터닝 센터</p>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="equip-card" data-equipment="kf5600" onclick="app.views.report.show('kf5600')">
+                        <div class="equip-img-wrapper">
+                            <img src="assets/equipment/현대위아 KF5600 II.png" alt="Hyundai WIA KF5600 II">
+                            <span class="status-badge">미측정</span>
+                        </div>
+                        <div class="equip-info">
+                            <h3>현대위아 KF5600 II</h3>
+                            <p>수직형 머시닝 센터</p>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="equip-card" data-equipment="ys080" onclick="app.views.report.show('ys080')">
+                        <div class="equip-img-wrapper">
+                            <img src="assets/equipment/현대로보틱스 YS080.png" alt="Hyundai Robotics YS080">
+                            <span class="status-badge">미측정</span>
+                        </div>
+                        <div class="equip-info">
+                            <h3>현대로보틱스 YS080</h3>
+                            <p>산업용 로봇</p>
+                        </div>
+                    </div>
+
+                    <!-- Card 4 -->
+                    <div class="equip-card" data-equipment="as50" onclick="app.views.report.show('as50')">
+                        <div class="equip-img-wrapper">
+                            <img src="assets/equipment/경원기계 AS-50.png" alt="Kyungwon Machinery AS-50">
+                            <span class="status-badge">미측정</span>
+                        </div>
+                        <div class="equip-info">
+                            <h3>경원기계 AS-50</h3>
+                            <p>에어 컴프레서</p>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- Draggable Bottom Sheet -->
+            <div class="bottom-sheet" id="equipment-sheet">
+                <div class="sheet-handle-wrapper">
+                    <div class="sheet-handle"></div>
+                </div>
+
+                <div class="sheet-content">
+                    <!-- Page 1: Main Dashboard -->
+                    <div class="sheet-section-main">
+                        <div class="sheet-top-section">
+                            <span class="sheet-sub-title"
+                                style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">설비 가동음 점검 현황</span>
+                        </div>
+
+                        <div class="dashboard-container">
+                            <!-- Chart Section -->
+                            <div class="chart-section">
+                                <div class="donut-chart-wrapper">
+                                    <div class="donut-chart" id="efficiency-chart"></div>
+                                <div class="chart-center-text" aria-label="가동음 점검 완료 비율">
+                                        <span class="chart-number" id="total-efficiency">0%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stats Grid -->
+                            <div class="stats-summary-grid">
+                                <div class="stat-box">
+                                    <span class="stat-label">기준과 유사</span>
+                                    <span class="stat-val safe" id="sheet-count-safe">0</span>
+                                </div>
+                                <div class="stat-box">
+                                    <span class="stat-label">차이 감지</span>
+                                    <span class="stat-val warning" id="sheet-count-warning">0</span>
+                                </div>
+                                <div class="stat-box">
+                                    <span class="stat-label">미측정</span>
+                                    <span class="stat-val danger" id="sheet-count-danger">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Scroll Hint (Optional, gives user clue) -->
+                        <div class="scroll-hint">
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                    </div>
+
+                    <!-- Page 2: Detailed List -->
+                    <div class="sheet-section-details">
+                        <div class="list-section">
+                            <h3 class="list-section-title">장비별 상세 현황</h3>
+                            <div class="equipment-list-clean" id="sheet-equipment-list">
+                                <!-- Injected via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Equipment Report (New) -->
+        <section id="view-report" class="view">
+            <header class="app-header">
+                <button class="btn-back" aria-label="장비 현황으로" onclick="app.router.navigate('management')">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h2>설비 점검 이력</h2>
+            </header>
+            <main class="report-main" id="report-content">
+                <!-- Content injected by JS -->
+            </main>
+        </section>
+
+        <!-- Global Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="active" aria-label="홈" data-target="home" onclick="app.router.navigate('home')"><i
+                    class="fa-solid fa-house"></i></button>
+            <button data-target="management" aria-label="장비 현황" onclick="app.router.navigate('management')"><i
+                    class="fa-solid fa-chart-simple"></i></button>
+            <button data-target="settings"><i class="fa-solid fa-gear"></i></button>
+        </nav>
+
+    </div>
+
+    <script src="js/audio-analysis.js"></script>
+    <script src="js/nfc.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
