@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60">
+  <defs>
+    <style>
+      .cls-1 { fill: #262626; }
+    </style>
+  </defs>
+  
+  <!-- Abstract "1" -->
+  <!-- A sleek, angled vertical pill shape -->
+  <path class="cls-1" d="M25,10 L35,10 C37.76,10 40,12.24 40,15 L40,45 C40,47.76 37.76,50 35,50 L25,50 C22.24,50 20,47.76 20,45 L20,15 C20,12.24 22.24,10 25,10 Z" transform="rotate(-15 30 30)"/>
+  
+  <!-- Abstract "0" -->
+  <!-- A circular ring with a small gap, representing a cycle/measurement -->
+  <path class="cls-1" d="M75,10 C63.95,10 55,18.95 55,30 C55,41.05 63.95,50 75,50 C86.05,50 95,41.05 95,30 C95,18.95 86.05,10 75,10 Z M75,42 C68.37,42 63,36.63 63,30 C63,23.37 68.37,18 75,18 C81.63,18 87,23.37 87,30 C87,36.63 81.63,42 75,42 Z"/>
+  
+  <!-- "Dot/Period" for emotion -->
+  <circle class="cls-1" cx="100" cy="45" r="3"/>
+
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&amp;family=Noto+Sans+KR:wght@700&amp;display=swap');
+      .num { fill: #262626; font-family: 'Black Han Sans', sans-serif; font-size: 80px; font-style: italic; }
+      .text { fill: #262626; font-family: 'Noto Sans KR', sans-serif; font-size: 36px; font-weight: 700; }
+    </style>
+  </defs>
+  
+  <!-- "10" - Large, Skewed/Italic -->
+  <!-- Using transform for skew if font-style italic doesn't render heavily enough in SVG readers, 
+       but standard text transform is safer. -->
+  <text x="10" y="80" class="num" transform="skewX(-10)">10</text>
+  
+  <!-- "초만" - Smaller, side by side -->
+  <text x="110" y="80" class="text">초만</text>
+</svg>

@@ -15,7 +15,8 @@ const CONTENT_TYPES = {
     '.js': 'text/javascript; charset=utf-8',
     '.json': 'application/json; charset=utf-8',
     '.svg': 'image/svg+xml',
-    '.png': 'image/png'
+    '.png': 'image/png',
+    '.mp3': 'audio/mpeg'
 };
 
 const EXPLANATION_SCHEMA = {
@@ -255,7 +256,28 @@ async function serveStatic(request, response, pathname) {
         if (!['ENOENT', 'ENOTDIR', 'EISDIR'].includes(error.code)) throw error;
         throw new HttpError(404, 'NOT_FOUND', '파일을 찾을 수 없습니다.');
     }
-    response.writeHead(200, { 'Content-Type': contentType, 'Content-Length': content.length });
+    const headers = { 'Content-Type': contentType, 'Content-Length': content.length };
+    if (contentType === 'audio/mpeg') {
+        headers['Accept-Ranges'] = 'bytes';
+        const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range || '');
+        if (range && (range[1] || range[2])) {
+            const start = range[1] ? Number(range[1]) : Math.max(0, content.length - Number(range[2]));
+            const end = range[1] && range[2] ? Math.min(content.length - 1, Number(range[2])) : content.length - 1;
+            if (start > end || start >= content.length) {
+                response.writeHead(416, { ...headers, 'Content-Length': 0, 'Content-Range': 'bytes */' + content.length });
+                response.end();
+                return;
+            }
+            response.writeHead(206, {
+                ...headers,
+                'Content-Length': end - start + 1,
+                'Content-Range': 'bytes ' + start + '-' + end + '/' + content.length
+            });
+            response.end(request.method === 'HEAD' ? undefined : content.subarray(start, end + 1));
+            return;
+        }
+    }
+    response.writeHead(200, headers);
     response.end(request.method === 'HEAD' ? undefined : content);
 }
 

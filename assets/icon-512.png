@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <style>
+      .cls-1 { fill: #ffffff; }
+      .cls-2 { fill: #000000; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect class="cls-1" width="512" height="512" rx="110" ry="110"/>
+  
+  <!-- Emotional Voice Wave (Vertical Bars) -->
+  <!-- Center aligned, varying heights to simulate a spoken word or heartbeat -->
+  
+  <!-- Center Bar -->
+  <rect class="cls-2" x="236" y="120" width="40" height="272" rx="20" ry="20"/>
+  
+  <!-- Left Side -->
+  <rect class="cls-2" x="176" y="180" width="40" height="152" rx="20" ry="20"/>
+  <rect class="cls-2" x="116" y="220" width="40" height="72" rx="20" ry="20"/>
+  
+  <!-- Right Side -->
+  <rect class="cls-2" x="296" y="160" width="40" height="192" rx="20" ry="20"/>
+  <rect class="cls-2" x="356" y="210" width="40" height="92" rx="20" ry="20"/>
+  
+</svg>

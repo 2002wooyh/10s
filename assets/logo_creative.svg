@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80">
+  <defs>
+    <style>
+      .main-stroke { 
+        fill: none; 
+        stroke: #262626; 
+        stroke-width: 4.5; 
+        stroke-linecap: round; 
+        stroke-linejoin: round; 
+      }
+    </style>
+  </defs>
+
+  <!-- "1" -->
+  <!-- Simple, elegant vertical -->
+  <path class="main-stroke" d="M35,22 L35,68 M25,30 L35,22" />
+  
+  <!-- "0" (Aesthetic Pinch) -->
+  <!-- A fluid loop that looks like a 0 but curves in at the waist -->
+  <!-- M top-center -> Curve right-top -> Curve right-waist (in) -> Curve right-bottom -> Bottom-center ... -->
+  <path class="main-stroke" d="M75,22 C95,22 95,35 85,45 C95,55 95,68 75,68 C55,68 55,55 65,45 C55,35 55,22 75,22 Z" />
+  
+  <!-- Floating "Sand" Dot in the center of 0 for detail -->
+  <circle cx="75" cy="45" r="3" fill="#262626" />
+
+  <!-- "초" (Refined) -->
+  <!-- ㅊ dot -->
+  <path class="main-stroke" d="M135,28 L135,33" />
+  <!-- ㅊ horiz -->
+  <path class="main-stroke" d="M120,38 L150,38" />
+  <!-- ㅊ legs -->
+  <path class="main-stroke" d="M135,38 L125,55 M135,38 L145,55" />
+  <!-- ㅗ -->
+  <path class="main-stroke" d="M135,58 L135,68 M120,68 L150,68" />
+
+  <!-- "만" (Refined) -->
+  <!-- ㅁ -->
+  <path class="main-stroke" d="M170,38 L190,38 L190,58 L170,58 Z" />
+  <!-- ㅏ -->
+  <path class="main-stroke" d="M200,33 L200,68 M200,50 L208,50" />
+  <!-- ㄴ (Extended slightly for balance) -->
+  <path class="main-stroke" d="M175,78 L175,83 L205,83" /> <!-- Moved ㄴ lower to balance with 10 base height if needed, keeping it tight though -->
+  <!-- Adjusting ㄴ to sit on same baseline as ㅗ -->
+  <!-- ㅗ is at y=68. Let's move ㄴ up -->
+  <!-- Re-drawing ㄴ -->
+  <path class="main-stroke" d="M175,70 L200,70 L200,75" fill="none" class="main-stroke" style="display:none"/> <!-- erasing conceptual line -->
+  <path class="main-stroke" d="M170,75 L200,75 L200,80" style="opacity:0"/> <!-- hiding old logic -->
+  
+  <!-- Actual ㄴ fix -->
+  <path class="main-stroke" d="M172,73 L205,73 L205,68" transform="rotate(180 188 70.5)" /> <!-- Just drawing a straight L -->
+  <path class="main-stroke" d="M175,75 L205,75 L205,70" style="display:none"/>
+
+  <!-- Simple ㄴ path -->
+  <path class="main-stroke" d="M175,65 L175,73 L205,73" />
+
+</svg>
