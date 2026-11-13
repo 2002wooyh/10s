@@ -27,7 +27,7 @@
 </head>
 <body>
     <div class="app-shell" id="demo-app">
-        <main class="main-screen">
+        <main id="main-screen" class="main-screen">
             <section id="home-screen" class="home-screen" aria-label="10초만 홈">
                 <h1 id="home-greeting" class="home-greeting" hidden>
                     <span id="home-greeting-name" class="home-greeting-name" aria-hidden="true"></span>
@@ -72,7 +72,7 @@
 
         <div id="sheet-layer" class="sheet-layer" inert aria-hidden="true">
             <button type="button" class="sheet-scrim" data-action="close-sheet" aria-label="창 닫기" tabindex="-1"></button>
-            <section id="app-sheet" class="app-sheet" role="dialog" aria-labelledby="sheet-title" tabindex="-1">
+            <section id="app-sheet" class="app-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1">
                 <div class="sheet-grip" id="sheet-grip" aria-hidden="true"><span></span></div>
                 <header class="sheet-header">
                     <button id="sheet-back" class="icon-button sheet-back" type="button" data-action="back-sheet" aria-label="이전 화면" hidden></button>
