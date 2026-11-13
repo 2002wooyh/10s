@@ -16,8 +16,8 @@
         link: '<path d="M10 13a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-2 2m3 5a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l2-2"/>',
         waveform: '<path d="M4 10v4m4-7v10m4-14v18m4-14v10m4-7v4"/>',
         check: '<path d="m5 12 4 4L19 6"/>',
-        arrow: '<path d="M19 12H5m7 7-7-7 7-7"/>',
-        close: '<path d="m6 6 12 12M18 6 6 18"/>',
+        'chevron-left': '<path d="m14.75 5.5-6.5 6.5 6.5 6.5"/>',
+        close: '<path d="m6.5 6.5 11 11m0-11-11 11"/>',
         download: '<path d="M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4"/>',
         info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/>'
     };
@@ -31,7 +31,7 @@
     const activeDevice = id => data.devices.find(device => device.id === id);
     const savedReport = id => data.reports.find(report => report.id === id);
     const iconButton = (symbol, label, action) =>
-        `<button type="button" class="icon-button" data-action="${action}" aria-label="${label}">${DemoIcon(symbol)}</button>`;
+        `<button type="button" class="icon-button" data-action="${action}" aria-label="${label}">${DemoIcon(symbol, 26)}</button>`;
 
     const sheetLayer = $('sheet-layer');
     const sheet = $('app-sheet');
@@ -69,7 +69,7 @@
 
     function renderHomeGreeting(animate = false) {
         window.clearTimeout(greetingTimer);
-        const name = `${data.nickname.trim() || '현장 담당자'}님,`;
+        const name = `${data.nickname.trim()}님,`;
         homeGreeting.setAttribute('aria-label', `${name} ${greetingQuestion}`);
         homeGreeting.hidden = false;
 
@@ -192,16 +192,19 @@
                 return ['장비 정보', device ? DemoInventory.detailStory(device, data)
                     : '<div class="empty-state"><strong>장비를 찾을 수 없습니다</strong></div>'];
             }
-            case 'report-loading': return ['분석 리포트', StoryReport.skeleton()];
+            case 'report-loading': return ['AI 분석 리포트', current.report?.recording === 'welding-demo'
+                ? WeldingReport.skeleton()
+                : StoryReport.skeleton()];
             case 'report': {
                 const report = current.report || savedReport(id);
-                if (!report) return ['분석 리포트', '<div class="empty-state"><strong>리포트를 찾을 수 없습니다</strong></div>'];
+                if (!report) return ['AI 분석 리포트', '<div class="empty-state"><strong>리포트를 찾을 수 없습니다</strong></div>'];
                 const registered = activeDevice(report.deviceId);
                 const device = current.device || registered;
                 const image = device?.model === report.model ? device?.image : '';
                 const renderer = report.recording === 'welding-demo' ? WeldingReport : StoryReport;
-                return ['분석 리포트', renderer.render(report, { canRepeat: Boolean(registered), image })];
+                return ['AI 분석 리포트', renderer.render(report, { canRepeat: Boolean(registered), image })];
             }
+            case 'report-chat': return ['', ReportChat.render()];
             case 'confirm': return ['삭제 확인', confirmView(current)];
             case 'missing-tag': return ['등록되지 않은 장비', '<div class="empty-state"><p>이 브라우저에 연결된 장비가 없습니다.</p><button class="btn-primary" type="button" data-action="add-device">장비 추가</button></div>'];
             case 'tag-link': return ['NFC 링크', `<div class="form-stack"><label class="field"><span>장비 링크</span>
@@ -227,7 +230,8 @@
         const [title, html] = panelContent(current);
         sheet.dataset.sheet = current.type;
         sheetLayer.dataset.sheet = current.type;
-        $('sheet-title').textContent = title;
+        const heading = $('sheet-title');
+        heading.textContent = title;
         $('sheet-back').hidden = panels.length < 2;
         body.innerHTML = html;
         body.setAttribute('aria-busy', String(current.type.endsWith('-loading')));
@@ -235,11 +239,35 @@
         if (current.type === 'report') {
             const report = current.report || savedReport(current.id);
             if (report) {
-                const renderer = report.recording === 'welding-demo' ? WeldingReport : StoryReport;
-                unmountStory = renderer.mount(body, report);
+                const welding = report.recording === 'welding-demo';
+                const renderer = welding ? WeldingReport : StoryReport;
+                const registered = activeDevice(report.deviceId);
+                const device = welding ? undefined : registered?.model === report.model ? registered : {
+                    id: report.deviceId, name: report.deviceName, model: report.model, point: report.point, rpm: report.rpm
+                };
+                const onQuestion = initialQuestion => panel('report-chat', report.id, {
+                    initialQuestion, device, report: TenData.reportForDisplay(report)
+                });
+                unmountStory = renderer.mount(body, { report, onQuestion });
             }
+        } else if (current.type === 'report-chat') {
+            unmountStory = ReportChat.mount(body, { ...current, heading });
         } else if (current.type === 'device-story') {
-            unmountStory = DemoInventory.mountStory(body, body);
+            const stopReveal = DemoInventory.mountStory(body, body);
+            const questions = body.querySelector('[data-report-chat-questions]');
+            const device = activeDevice(current.id);
+            if (questions && device) {
+                const stopQuestions = ReportChat.bindQuestions(questions, initialQuestion => {
+                    const report = DemoInventory.latestReport(device, data);
+                    panel('report-chat', device.id, { initialQuestion, device, report });
+                });
+                unmountStory = () => {
+                    stopReveal();
+                    stopQuestions();
+                };
+            } else {
+                unmountStory = stopReveal;
+            }
         } else if (current.type === 'manage-devices') {
             DeviceManagement.mountList(body, removeManagedDevice);
         } else if (current.type === 'device-form') {
@@ -340,7 +368,7 @@
             session = null;
             if (fromHome) {
                 setHomeScanActive(false);
-                scanStatus.textContent = '점검을 마쳤어요. 분석 리포트를 준비하고 있어요.';
+                scanStatus.textContent = '점검을 마쳤어요. AI 분석 리포트를 준비하고 있어요.';
             }
             revealReport(device, fromHome);
         }
@@ -375,7 +403,7 @@
             ...report.peaks.map(peak => peak.hz + ' Hz  ' + peak.baseline + ' / ' + peak.measured + '  (' + peak.change + ' dB)'),
             '', '분석 근거', ...report.observations, '', '확인할 항목', ...report.nextChecks
         ];
-        const text = ['10초만 분석 리포트', [report.deviceName, report.model].filter(Boolean).join(' · '),
+        const text = ['10초만 AI 분석 리포트', [report.deviceName, report.model].filter(Boolean).join(' · '),
             date.format(new Date(report.createdAt)), '', report.statusLabel, report.summary, '', ...details]
             .filter(value => value != null).join('\r\n');
         const url = URL.createObjectURL(new Blob(['\ufeff', text], { type: 'text/plain;charset=utf-8' }));
@@ -502,7 +530,7 @@
         const name = button.dataset.tab === 'inventory' ? 'devices' : button.dataset.tab;
         button.querySelector('.nav-icon').innerHTML = DemoIcon(name);
     }
-    $('sheet-back').innerHTML = DemoIcon('arrow');
+    $('sheet-back').innerHTML = DemoIcon('chevron-left', 26);
     $('sheet-actions').innerHTML = iconButton('close', '닫기', 'close-sheet');
     renderHomeGreeting(true);
     updateTab();

@@ -80,7 +80,7 @@
 
     function reports({ reports }) {
         if (!reports.length) {
-            return emptyState('저장된 리포트가 없어요', '점검이 끝나면 분석 리포트를 여기에서 확인할 수 있어요.');
+            return emptyState('저장된 리포트가 없어요', '점검이 끝나면 AI 분석 리포트를 여기에서 확인할 수 있어요.');
         }
         return `<ul class="device-list report-list">${reports.map(savedReport => {
             const report = global.TenData.reportForDisplay(savedReport);

@@ -175,6 +175,10 @@
         </section>`;
     }
 
+    function latestReport(device, data) {
+        return (histories(data).get(device.id) ?? []).find(report => sameModel(report, device));
+    }
+
     function detailStory(device, data) {
         const reports = histories(data).get(device.id) ?? [];
         const currentReports = reports.filter(report => sameModel(report, device));
@@ -183,6 +187,10 @@
         const category = device.category === device.name ? '' : device.category;
         const subtitle = device.model || category;
         const notes = typeof device.details === 'string' ? device.details.trim() : '';
+        const questions = [
+            '어디에서 소리를 측정하나요?',
+            latest ? '최근 분석은 어땠나요?' : '첫 점검은 어떻게 시작하나요?'
+        ];
         const facts = [['모델', device.model], ['측정 위치', device.point],
             ['비교 기준 회전수', device.rpm ? device.rpm.toLocaleString('ko-KR') + ' rpm' : '']].filter(([, value]) => value);
         return `<article class="inventory-details inventory-detail-story">
@@ -210,11 +218,13 @@
             <section class="inventory-history" data-inventory-reveal><div class="inventory-section-heading"><h3>점검 기록</h3>
                 <span>전체 <strong>${reports.length}건</strong></span></div>
                 ${reports.length ? `<ul class="inventory-list">${reports.map(report => `<li><button type="button" class="inventory-history-row" data-action="open-report" data-id="${escape(report.id)}">
-                    <span class="inventory-row-icon">${icon('reports', 19)}</span><span class="inventory-row-copy"><strong>가동음 분석 리포트</strong>
+                    <span class="inventory-row-icon">${icon('reports', 19)}</span><span class="inventory-row-copy"><strong>AI 분석 리포트</strong>
                     <small>${escape(displayDate(report.createdAt, formatRecordDate))} · ${escape(report.point)}</small>
                     ${!sameModel(report, device) && report.model ? `<small>이전 모델 · ${escape(report.model)}</small>` : ''}</span>
                     ${statusChip(report)}${icon('chevron', 16)}</button></li>`).join('')}</ul>` : '<p class="inventory-empty-copy">점검을 완료하면 이곳에서 리포트를 볼 수 있어요.</p>'}
-            </section></article>`;
+            </section>
+            ${global.ReportChat.questions({ id: 'inventory-questions-title', questions })}
+        </article>`;
     }
 
     function mountStory(container, scrollRoot = container) {
@@ -476,5 +486,5 @@
         state = null;
     }
 
-    global.DemoInventory = { render, refresh, focusDevice, dispose, detailStory, mountStory };
+    global.DemoInventory = { render, refresh, focusDevice, dispose, detailStory, mountStory, latestReport };
 })(globalThis);

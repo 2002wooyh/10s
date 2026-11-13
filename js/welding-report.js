@@ -15,6 +15,7 @@
         const { left, right, bottom } = outline;
         return `<svg class="weld-plot" viewBox="0 0 320 159" role="img" aria-label="${escape(name)}">
             <text class="weld-axis-label" x="${left}" y="11">${escape(unit)}</text>
+            ${yTicks.slice(0, -1).map(([position]) => `<line class="weld-grid" x1="${left}" x2="${right}" y1="${position}" y2="${position}"></line>`).join('')}
             ${yTicks.map(([position, label]) => `<text class="weld-axis-label" x="${left - 5}" y="${position + 3}" text-anchor="end">${label}</text>`).join('')}
             <line class="weld-axis" x1="${left}" x2="${right}" y1="${bottom}" y2="${bottom}"></line>
             ${xTicks.map(([position, label], index) => `<text class="weld-axis-label" x="${position}" y="149" text-anchor="${index === 0 ? 'start' : index === xTicks.length - 1 ? 'end' : 'middle'}">${label}</text>`).join('')}
@@ -35,7 +36,10 @@
         return graphFrame({
             name: '용접 녹음의 시간 파형. 시간에 따른 디지털 진폭.',
             unit: '디지털 진폭',
-            xTicks: [0, 5, 10, signal.durationSeconds].map(value => [x(value), number.format(value) + '초']),
+            xTicks: [0, .25, .5, .75, 1].map(fraction => {
+                const seconds = fraction * signal.durationSeconds;
+                return [x(seconds), number.format(seconds) + '초'];
+            }),
             yTicks: [limit, 0, -limit].map(value => [y(value), number.format(value)]),
             content: `<path class="weld-waveform" d="${path} Z"></path>`
         });
@@ -56,6 +60,7 @@
             <defs><clipPath id="weld-fft-clip"><rect x="${left}" y="${top}" width="${right - left}" height="${bottom - top}"></rect></clipPath></defs>
             <text class="weld-axis-label" x="${right}" y="11" text-anchor="end">디지털 레벨 (dBFS)</text>
             ${[high, (high + low) / 2, low].map(value => `<text class="weld-axis-label" x="${left - 5}" y="${y(value) + 3}" text-anchor="end">${value}</text>`).join('')}
+            ${[high, (high + low) / 2].map(value => `<line class="weld-grid" x1="${left}" x2="${right}" y1="${y(value)}" y2="${y(value)}"></line>`).join('')}
             <line class="weld-axis" x1="${left}" x2="${right}" y1="${bottom}" y2="${bottom}"></line>
             ${[0, 1, 2, 3].map(index => {
                 const value = end * index / 3;
@@ -66,72 +71,54 @@
                 <path class="weld-spectrum-fill" d="${area}"></path>
                 <path class="weld-spectrum-line" d="${path}"></path>
             </g>
+            <circle class="weld-peak-dot" cx="${x(signal.fft.peakHz)}" cy="${y(signal.fft.peakDbFS)}" r="3.5"></circle>
         </svg>`;
     }
 
-    function signalNotes(signal) {
-        return [
-            {
-                title: `${number.format(Math.round(signal.fft.peakHz))} Hz 부근이 가장 뚜렷했어요`,
-                copy: '그래프 왼쪽의 낮은 주파수에서 가장 큰 성분이 나타났어요. 다음 점검에서 같은 위치와 운전 조건으로 녹음하면 이 성분이 어떻게 달라졌는지 비교할 수 있어요.'
-            },
-            {
-                title: '2,200 Hz 부근에도 성분이 모여 있어요',
-                copy: '그래프 왼쪽에서 오른쪽으로 조금 이동하면 여러 성분이 모인 구간이 보여요. 순간적으로 달라진 소리가 있었는지는 위쪽 녹음을 다시 듣거나 작업 영상의 같은 구간을 확인해 보세요.'
-            }
-        ];
-    }
-
-    const summary = [
-        '가장 뚜렷한 주파수 성분을 찾았어요. 다음 점검에서는 같은 위치와 운전 조건에서 녹음해 두 기록을 비교해 보세요.',
-        '용접 품질은 소리와 작업 기록을 함께 보면 더 자세히 확인할 수 있어요. 보호가스 유량은 유량계에서, 스패터·험핑·용락은 용접부에서 확인할 수 있어요.'
-    ];
+    const summary = '다음 점검에서는 같은 위치와 운전 조건에서 가동음을 기록해 비교해 보세요. 용접 상태는 보호가스 유량계와 용접부를 함께 보면 더 자세히 확인할 수 있어요.';
     const checks = [
         ['보호가스 유량', '유량계 기록을 작업 기준과 비교해요.'],
         ['스패터', '용접선 주변에 튄 금속 방울을 확인해요.'],
         ['험핑·용락', '용접선이 반복해서 솟았거나 구멍이 생겼는지 확인해요.']
     ];
 
-    function questions(signal) {
+    function suggestedQuestions(signal) {
         return [
-            {
-                label: '181 Hz는 무슨 뜻인가요?',
-                match: /\b181\b|주파수|피크|fft|d\s*b\s*f\s*s|파형|그래프/iu,
-                answer: `이 녹음에서 가장 큰 주파수 성분은 ${number.format(signal.fft.peakHz)} Hz이고, 레벨은 ${signal.fft.peakDbFS} dBFS예요. dBFS는 녹음 파일의 디지털 레벨이에요. 특정 결함과 연결하려면 같은 조건의 기준음과 작업 기록이 필요해요.`
-            },
-            {
-                label: '가스 유량은 어떻게 확인해요?',
-                match: /가스|유량|l\s*\/\s*min|보호기체/iu,
-                answer: '작업 중 유량계에 기록된 L/min 값과 해당 작업의 기준 유량을 비교해요. 같은 조건의 녹음을 함께 남겨 두면 유량과 소리의 변화를 나란히 볼 수 있어요.'
-            },
-            {
-                label: '스패터는 어디를 봐야 하나요?',
-                match: /스패터|스파터|스펙터|spatter|금속\s*방울/iu,
-                answer: '용접 비드 주변에 튄 작은 금속 방울을 작업 영상이나 용접 후 표면에서 확인해요. 2,200 Hz 부근의 소리만으로 스패터 발생 횟수를 셀 수는 없어요.'
-            },
-            {
-                label: '험핑과 용락은 어떻게 달라요?',
-                match: /험핑|용락|humping|burn\s*through|구멍/iu,
-                answer: '험핑은 비드가 물결처럼 반복해서 솟은 모양이고, 용락은 소재가 지나치게 녹아 구멍이 생기는 현상이에요. 둘 다 용접 후 비드 사진과 작업 영상에서 확인해요.'
-            },
-            {
-                label: '다음 점검에서 뭘 맞춰야 하나요?',
-                match: /재측정|재점검|다음\s*점검|측정\s*조건|비교\s*조건|정상|판정/iu,
-                answer: '같은 공정 설정과 녹음 위치에서 다시 비교해요. 가스 유량, 비드 사진, 작업 영상을 함께 기록해 두면 소리가 달라진 이유를 살피기 쉬워요.'
-            },
-            {
-                label: '녹음은 얼마나 길어요?',
-                match: /녹음|재생|길이|시간|샘플링/iu,
-                answer: `용접 녹음은 약 ${signal.durationSeconds.toFixed(1)}초예요. 리포트 위쪽의 ‘다시 듣기’로 재생하거나 원하는 위치로 이동할 수 있어요.`
-            }
+            `${number.format(signal.fft.peakHz)} Hz는 어떤 의미인가요?`,
+            '가스 유량은 어떻게 확인해요?'
         ];
+    }
+
+    function skeleton() {
+        return `<div class="weld-report weld-skeleton" data-weld-skeleton role="status">
+            <span class="visually-hidden">AI 분석 리포트를 준비하고 있어요.</span>
+            <header class="weld-identity" aria-hidden="true">
+                <div class="weld-identity-copy">
+                    <i class="weld-shimmer weld-skeleton-name"></i>
+                    <i class="weld-shimmer weld-skeleton-model"></i>
+                    <i class="weld-shimmer weld-skeleton-date"></i>
+                </div>
+                <div class="weld-photo"><i class="weld-shimmer weld-skeleton-photo"></i></div>
+            </header>
+            <section class="weld-assessment" aria-hidden="true">
+                <i class="weld-shimmer weld-skeleton-status"></i>
+                <i class="weld-shimmer weld-skeleton-heading"></i>
+                <i class="weld-shimmer weld-skeleton-copy"></i>
+                <div class="weld-player"><i class="weld-shimmer"></i><i class="weld-shimmer"></i></div>
+            </section>
+            <section class="weld-section weld-chart-panel" aria-hidden="true">
+                <i class="weld-shimmer weld-skeleton-heading"></i>
+                <i class="weld-shimmer weld-skeleton-copy"></i>
+                <div class="weld-chart weld-skeleton-plot"><i class="weld-shimmer"></i></div>
+            </section>
+        </div>`;
     }
 
     function render(report, { image, canRepeat }) {
         const signal = globalThis.WeldingSignal;
         const recordedAt = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(report.createdAt));
         const equipment = image || globalThis.TenData.homeDemoDevice().image;
-        return `<article class="weld-report" data-weld-report aria-label="CMT 용접기 분석 리포트">
+        return `<article class="weld-report" data-weld-report aria-label="CMT 용접기 AI 분석 리포트">
             <header class="weld-identity">
                 <div class="weld-identity-copy">
                     <h2>${escape(report.deviceName)}</h2>
@@ -143,7 +130,7 @@
             <section class="weld-assessment">
                 <p class="weld-assessment-label">${icon('check', 16)} 분석 완료</p>
                 <h3>용접기의 가동음을 살펴봤어요</h3>
-                <p>녹음을 다시 듣고 어떤 주파수의 소리가 두드러졌는지 확인해 보세요.</p>
+                <p>분석한 ${number.format(signal.durationSeconds)}초의 녹음을 들을 수 있어요.</p>
                 <div class="weld-player">
                     <button type="button" class="weld-play" data-weld-play><span data-weld-play-icon aria-hidden="true">${icon('play', 17)}</span><span data-weld-play-text>다시 듣기</span></button>
                     <div class="weld-player-track">
@@ -154,58 +141,44 @@
                 </div>
                 <p class="weld-player-status" data-weld-player-status role="status" hidden></p>
             </section>
-            <section class="weld-section" data-weld-reveal>
-                <h3>녹음한 소리의 파형이에요</h3>
-                <p>시간이 지나면서 소리의 크기가 어떻게 바뀌었는지 보여줘요.</p>
+            <section class="weld-section weld-chart-panel">
+                <h3>녹음 파형</h3>
+                <p>시간에 따른 소리 크기를 보여줘요.</p>
                 <figure class="weld-chart">${waveform(signal)}<figcaption>전체 녹음 · ${signal.durationSeconds.toFixed(1)}초</figcaption></figure>
             </section>
-            <section class="weld-section weld-spectrum" aria-labelledby="weld-fft-title">
-                <h3 id="weld-fft-title">이렇게 변환했어요.</h3>
-                <p>푸리에 변환(FFT)으로 시간 파형을 주파수별 크기로 나눴어요.</p>
+            <section class="weld-section weld-chart-panel weld-spectrum" aria-labelledby="weld-fft-title">
+                <h3 id="weld-fft-title">주파수 분석</h3>
+                <p>같은 녹음에 푸리에 변환(FFT)을 적용해 주파수별 크기를 구했어요.</p>
                 <figure class="weld-chart">${spectrum(signal)}</figure>
                 <dl class="weld-signal-facts" aria-label="녹음에서 계산한 값">
                     <div><dt>녹음 길이</dt><dd>${signal.durationSeconds.toFixed(1)}<small>초</small></dd></div>
                     <div><dt>가장 큰 성분</dt><dd>${number.format(signal.fft.peakHz)}<small>Hz</small></dd></div>
                     <div><dt>해당 레벨</dt><dd>${signal.fft.peakDbFS}<small>dBFS</small></dd></div>
                 </dl>
-                <div class="weld-fft-explanations">
-                    ${signalNotes(signal).map(item => `<section class="weld-fft-copy">
-                        <h4>${item.title}</h4><p>${item.copy}</p>
-                    </section>`).join('')}
+                <div class="weld-fft-note">
+                    ${icon('waveform', 18)}
+                    <p>그래프의 파란 점이 가장 크게 나타난 ${number.format(signal.fft.peakHz)} Hz 성분이에요.</p>
                 </div>
                 <details class="weld-method"><summary>그래프 계산 방법</summary>
-                    <p>44.1 kHz 녹음의 좌우 채널을 평균하고 Hann 창을 적용해 전체 녹음의 FFT를 계산했어요. 화면에는 ${signal.fft.displayBucketHz} Hz 묶음마다 가장 큰 성분을 표시했어요. dBFS는 녹음 파일 안의 디지털 레벨이에요.</p>
+                    <p>${number.format(signal.sampleRate / 1000)} kHz 녹음의 좌우 채널을 평균하고 Hann 창을 적용해 전체 ${number.format(signal.durationSeconds)}초의 FFT를 계산했어요. 그래프에는 ${signal.fft.displayBucketHz} Hz마다 가장 큰 성분을 표시했어요. dBFS는 녹음 파일 안의 디지털 레벨이에요.</p>
                 </details>
             </section>
             <section class="weld-summary" data-weld-reveal>
-                <h3>분석 총평</h3>
-                ${summary.map(copy => `<p>${copy}</p>`).join('')}
-                <dl class="weld-summary-checks">${checks.map(([name, copy]) => `<div><dt>${name}</dt><dd>${copy}</dd></div>`).join('')}</dl>
-            </section>
-            <section class="weld-section weld-questions" aria-labelledby="weld-questions-title">
-                <h3 id="weld-questions-title">궁금한 점이 있나요?</h3>
-                <p>그래프를 읽는 법이나 다음에 확인할 항목을 물어보세요.</p>
-                <div class="story-chip-list">
-                    ${questions(signal).map(({ label }, index) => `<button class="story-chip" type="button"
-                        data-weld-question="${index}" aria-pressed="false" aria-controls="weld-question-answer">${escape(label)}</button>`).join('')}
-                </div>
-                <form class="weld-question-form" data-weld-question-form>
-                    <label class="visually-hidden" for="weld-question-input">리포트에 질문하기</label>
-                    <input id="weld-question-input" type="text" name="question" placeholder="궁금한 점을 입력해 주세요" required maxlength="180">
-                    <button class="btn-primary" type="submit">질문하기</button>
-                </form>
-                <div class="story-answer" id="weld-question-answer" role="status" aria-atomic="true" hidden>
-                    <strong data-weld-question-text></strong><p data-weld-answer></p>
-                </div>
+                <h3>분석 요약</h3>
+                <p>${summary}</p>
+                <dl class="weld-summary-checks">${checks.map(([name, copy]) => `<div>
+                    <dt><span class="weld-check-icon">${icon('check', 15)}</span>${name}</dt><dd>${copy}</dd>
+                </div>`).join('')}</dl>
             </section>
             <div class="weld-actions">
-                ${canRepeat ? `<button class="btn-primary" type="button" data-action="run-demo" data-id="${escape(report.deviceId)}">${icon('waveform', 19)} 다시 점검</button>` : ''}
-                <button class="btn-secondary" type="button" data-action="download-report" data-id="${escape(report.id)}">${icon('download', 19)} 리포트 저장</button>
+                ${canRepeat ? `<button class="btn-secondary" type="button" data-action="run-demo" data-id="${escape(report.deviceId)}">${icon('waveform', 18)} 다시 점검</button>` : ''}
+                <button class="btn-secondary" type="button" data-action="download-report" data-id="${escape(report.id)}">${icon('download', 18)} 리포트 저장</button>
             </div>
+            ${globalThis.ReportChat.questions({ id: 'weld-questions-title', questions: suggestedQuestions(signal) })}
         </article>`;
     }
 
-    function mount(root) {
+    function mount(root, { onQuestion }) {
         const host = root.querySelector('[data-weld-report]');
         const audio = host.querySelector('[data-weld-audio]');
         const button = host.querySelector('[data-weld-play]');
@@ -254,39 +227,9 @@
         audio.addEventListener('error', showAudioError, options);
         updateAudio();
 
-        const entries = questions(signal);
-        const questionForm = host.querySelector('[data-weld-question-form]');
-        const questionInput = questionForm.elements.question;
-        const suggestionButtons = [...host.querySelectorAll('[data-weld-question]')];
-        const response = host.querySelector('#weld-question-answer');
-        const questionText = response.querySelector('[data-weld-question-text]');
-        const answerText = response.querySelector('[data-weld-answer]');
-
-        function showAnswer(question, answers, selected = null) {
-            for (const suggestion of suggestionButtons) {
-                suggestion.setAttribute('aria-pressed', String(suggestion === selected));
-            }
-            questionText.textContent = question;
-            answerText.textContent = answers.length
-                ? answers.map(entry => entry.answer).join(' ')
-                : '이 리포트에서 확인하기 어려운 내용이에요. 주파수, 보호가스, 스패터나 다음 점검에 대해 물어보세요.';
-            response.hidden = false;
-        }
-
-        for (const suggestion of suggestionButtons) {
-            suggestion.addEventListener('click', () => {
-                const entry = entries[Number(suggestion.dataset.weldQuestion)];
-                showAnswer(entry.label, [entry], suggestion);
-            }, options);
-        }
-        questionForm.addEventListener('submit', event => {
-            event.preventDefault();
-            const question = questionInput.value.trim();
-            if (!question) return;
-            const answers = entries.filter(entry => entry.match.test(question.normalize('NFKC'))).slice(0, 2);
-            showAnswer(question, answers);
-            questionForm.reset();
-        }, options);
+        const unbindQuestions = globalThis.ReportChat.bindQuestions(
+            host.querySelector('[data-report-chat-questions]'), onQuestion
+        );
 
         let observer;
         if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
@@ -302,6 +245,7 @@
         }
         return () => {
             events.abort();
+            unbindQuestions();
             audio.pause();
             observer?.disconnect();
         };
@@ -312,10 +256,10 @@
         return [
             `용접 녹음 · ${signal.durationSeconds.toFixed(1)}초 · 샘플링 주파수 ${number.format(signal.sampleRate)} Hz`,
             `FFT의 가장 큰 주파수 성분 · ${number.format(signal.fft.peakHz)} Hz`,
-            '', '분석 총평', ...summary,
+            '', '분석 요약', summary,
             ...checks.map(([name, copy]) => `${name} · ${copy}`)
         ];
     }
 
-    globalThis.WeldingReport = { render, mount, exportLines };
+    globalThis.WeldingReport = { render, skeleton, mount, exportLines };
 })();

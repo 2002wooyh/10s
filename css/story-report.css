@@ -348,49 +348,6 @@
     overflow-wrap: anywhere;
 }
 
-.story-chip-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
-.story-chip {
-    min-height: 39px;
-    max-width: 100%;
-    padding: 6px 11px;
-    border: 1px solid #dbe9f9;
-    border-radius: 999px;
-    background: #fff;
-    color: #25578e;
-    font-size: .78rem;
-    font-weight: 760;
-    text-align: start;
-    overflow-wrap: anywhere;
-}
-.story-chip:hover { background: #f2f8ff; }
-.story-chip[aria-pressed='true'] {
-    border-color: #a6cffb;
-    background: #e9f4ff;
-    color: #155fb5;
-}
-.story-answer {
-    min-height: 66px;
-    margin-top: 11px;
-    padding: 12px;
-    border-radius: 13px;
-    background: #edf6ff;
-    color: #274668;
-    font-size: .86rem;
-    line-height: 1.64;
-    overflow-wrap: anywhere;
-}
-.story-answer p { margin: 0; }
-.story-answer.is-answering p::after {
-    content: '';
-    display: inline-block;
-    width: 2px;
-    height: .9em;
-    margin-left: 3px;
-    vertical-align: -.07em;
-    background: #3c91ed;
-    animation: story-cursor .8s steps(2, start) infinite;
-}
-@keyframes story-cursor { 50% { opacity: 0; } }
 .story-actions { display: grid; gap: 8px; padding-top: 22px; }
 .story-sr-only {
     position: absolute;

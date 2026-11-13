@@ -260,7 +260,7 @@ h1, h2, h3, p, ul, dl, dd { margin: 0; }
     transform: translateY(101%);
     transition: transform .38s var(--sheet-motion);
 }
-.app-sheet:is([data-sheet="report-loading"], [data-sheet="report"], [data-sheet="device-story-loading"], [data-sheet="device-story"]) {
+.app-sheet:is([data-sheet="report-loading"], [data-sheet="report"], [data-sheet="report-chat"], [data-sheet="device-story-loading"], [data-sheet="device-story"]) {
     top: clamp(24px, 6%, 58px);
 }
 .app-sheet[data-sheet="confirm"] { top: max(26%, calc(100% - 405px)); }
@@ -278,9 +278,9 @@ h1, h2, h3, p, ul, dl, dd { margin: 0; }
 .sheet-header {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 6px;
     flex: 0 0 auto;
-    padding: 5px 20px 13px;
+    padding: 4px 20px 12px;
 }
 .sheet-header h1 {
     flex: 1;
@@ -291,7 +291,8 @@ h1, h2, h3, p, ul, dl, dd { margin: 0; }
     font-weight: 800;
     overflow-wrap: anywhere;
 }
-.sheet-actions { display: flex; align-items: center; gap: 5px; flex: none; }
+.sheet-actions { display: flex; align-items: center; flex: none; margin-inline-end: -10px; }
+.sheet-back { margin-inline-start: -10px; }
 .icon-button, .row-icon-button {
     display: grid;
     place-items: center;
@@ -303,6 +304,19 @@ h1, h2, h3, p, ul, dl, dd { margin: 0; }
     border-radius: 14px;
     background: #f2f5f9;
     color: #53667e;
+}
+.sheet-header .icon-button {
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: 0;
+    background: transparent;
+    color: #78889a;
+    touch-action: manipulation;
+}
+.sheet-header .icon-button svg { pointer-events: none; stroke-width: 1.6; }
+.sheet-header .icon-button:active { color: #53677d; }
+@media (hover: hover) {
+    .sheet-header .icon-button:hover { color: #53677d; }
 }
 .sheet-body {
     flex: 1 1 auto;

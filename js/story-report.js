@@ -76,7 +76,7 @@
         </svg>`;
     }
 
-    function skeleton(message = '분석 리포트를 준비하고 있어요.') {
+    function skeleton(message = 'AI 분석 리포트를 준비하고 있어요.') {
         return `<div class="story-skeleton" role="status">
             <span class="story-sr-only">${escape(message)}</span>
             <div class="story-skeleton-hero" aria-hidden="true">
@@ -102,26 +102,6 @@
         return `먼저 ${hz(peak.hz)} 부근에 주목했어요. 동작 속도·부하·주변 소음이 달라져도 이 구간의 소리는 변할 수 있어요. 같은 조건으로 다시 측정하면 변화가 반복되는지 확인할 수 있어요.`;
     }
 
-    function questions(report, peak) {
-        const checks = Array.isArray(report.nextChecks) ? report.nextChecks.filter(Boolean) : [];
-        return [
-            {
-                label: peak ? `왜 ${hz(peak.hz)}를 봤나요?` : '그래프는 어떻게 읽나요?',
-                answer: peak
-                    ? `표시한 성분 중 기준과 비교의 차이가 큰 지점이에요. ${hz(peak.hz)}에서 기준음은 ${level(peak.baseline)}, 비교음은 ${level(peak.measured)}였어요. 파란 점이 비교음의 위치를 나타내요.`
-                    : '회색 점선은 기준음, 파란 실선은 이번 비교음을 보여줘요. 두 선 사이가 벌어진 주파수를 살펴보면 변화 위치를 찾을 수 있어요.'
-            },
-            {
-                label: '정비 판단에 어떻게 써요?',
-                answer: '참고 신호로 비교하는 방법을 익힐 수 있어요. 정비 여부는 같은 운전 조건에서 기록한 가동음과 현장 점검 결과를 함께 보고 판단해요.'
-            },
-            {
-                label: '다음엔 뭘 확인해요?',
-                answer: checks.length ? checks.join(' ') : '같은 운전 조건과 지정 측정 위치에서 비교해 주세요.'
-            }
-        ];
-    }
-
     function render(saved, { canRepeat = true, image = '' } = {}) {
         if (!saved) return '<div class="empty-state"><strong>리포트를 찾을 수 없습니다</strong></div>';
         const report = globalThis.TenData.reportForDisplay(saved);
@@ -137,11 +117,14 @@
         const observations = Array.isArray(report.observations) ? report.observations.filter(Boolean) : [];
         const created = new Date(report.createdAt);
         const dateText = Number.isNaN(created.getTime()) ? '' : date.format(created);
-        const availableQuestions = questions(report, focus);
+        const availableQuestions = [
+            focus ? `왜 ${hz(focus.hz)}를 봤나요?` : '그래프는 어떻게 읽나요?',
+            '다음 점검에서 뭘 확인해요?'
+        ];
         const graph = chart(data);
         const hasPhoto = /^assets\/equipment\/[^/\\]+\.png$/u.test(image) || globalThis.TenData?.isDevicePhoto?.(image);
 
-        return `<article class="story-report" data-story-report aria-label="장비 가동음 분석 리포트">
+        return `<article class="story-report" data-story-report aria-label="장비 가동음 AI 분석 리포트">
             <div class="story-identity${hasPhoto ? ' has-photo' : ''}">
                 ${hasPhoto ? `<span class="story-identity-photo"><img src="${escape(image)}" alt="" decoding="async"></span>`
                     : `<span class="story-identity-icon">${icon('devices', 20)}</span>`}
@@ -194,30 +177,22 @@
                 <ol class="story-checks">${items.map((item, index) => `<li><span aria-hidden="true">${index + 1}</span><p>${escape(item)}</p></li>`).join('')}</ol>
             </section>` : ''}
 
-            <section class="story-section story-questions" data-story-reveal="zoom" aria-labelledby="story-question-title">
-                <h3 id="story-question-title">궁금한 점이 있나요?</h3>
-                <div class="story-chip-list">${availableQuestions.map(({ label }, index) => `<button type="button"
-                    class="story-chip" data-story-question="${index}" aria-pressed="false" aria-controls="story-answer">${escape(label)}</button>`).join('')}</div>
-                <div id="story-answer" class="story-answer" hidden>
-                    <p data-story-answer aria-hidden="true"></p>
-                </div>
-                <p class="story-sr-only" data-story-announcement role="status" aria-atomic="true"></p>
-            </section>
-
             <div class="story-actions" data-story-reveal="slide">
                 ${canRepeat ? `<button class="btn-primary" type="button" data-action="run-demo" data-id="${escape(report.deviceId)}">${icon('waveform', 19)} 다시 점검</button>` : ''}
                 <button class="btn-secondary" type="button" data-action="download-report" data-id="${escape(report.id)}">${icon('download', 19)} 리포트 저장</button>
             </div>
+            ${globalThis.ReportChat.questions({ id: 'story-question-title', questions: availableQuestions })}
         </article>`;
     }
 
-    function mount(root, report) {
+    function mount(root, { report, onQuestion }) {
         const host = root.matches('[data-story-report]') ? root : root.querySelector('[data-story-report]');
         if (!host || !report) return () => {};
         const signal = readSignal(report);
-        const answers = questions(report, signal.focus);
         const media = matchMedia('(prefers-reduced-motion: reduce)');
-        let animation = 0;
+        const unbindQuestions = globalThis.ReportChat.bindQuestions(
+            host.querySelector('[data-report-chat-questions]'), onQuestion
+        );
         let observer;
 
         if (!media.matches && 'IntersectionObserver' in window) {
@@ -233,53 +208,7 @@
             host.querySelectorAll('[data-story-reveal]').forEach(section => observer.observe(section));
         }
 
-        function streamAnswer(answer) {
-            cancelAnimationFrame(animation);
-            const box = host.querySelector('#story-answer');
-            const output = host.querySelector('[data-story-answer]');
-            const announcement = host.querySelector('[data-story-announcement]');
-            box.hidden = false;
-            output.textContent = '';
-            announcement.textContent = '';
-            box.classList.toggle('is-answering', !media.matches);
-
-            function finish() {
-                animation = 0;
-                output.textContent = answer;
-                announcement.textContent = answer;
-                box.classList.remove('is-answering');
-            }
-            if (media.matches) {
-                finish();
-                return;
-            }
-            const letters = Array.from(answer);
-            const start = performance.now();
-            const duration = Math.min(1450, letters.length * 14);
-
-            function tick(now) {
-                const fraction = Math.min(1, (now - start) / duration);
-                if (fraction >= 1 || media.matches) {
-                    finish();
-                    return;
-                }
-                output.textContent = letters.slice(0, Math.max(1, Math.floor(letters.length * fraction))).join('');
-                animation = requestAnimationFrame(tick);
-            }
-            animation = requestAnimationFrame(tick);
-        }
-
         function onClick(event) {
-            const chip = event.target.closest('[data-story-question]');
-            if (chip && host.contains(chip)) {
-                const picked = answers[Number(chip.dataset.storyQuestion)];
-                if (!picked) return;
-                host.querySelectorAll('[data-story-question]').forEach(button =>
-                    button.setAttribute('aria-pressed', String(button === chip)));
-                streamAnswer(picked.answer);
-                return;
-            }
-
             const zoom = event.target.closest('[data-story-zoom]');
             if (zoom && host.contains(zoom)) {
                 const expanded = zoom.getAttribute('aria-pressed') === 'false';
@@ -293,7 +222,7 @@
         host.addEventListener('click', onClick);
         return () => {
             observer?.disconnect();
-            cancelAnimationFrame(animation);
+            unbindQuestions();
             host.removeEventListener('click', onClick);
         };
     }

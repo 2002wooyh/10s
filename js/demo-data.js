@@ -7,7 +7,8 @@
     const catalogVersion = 4;
     const cmtCatalogId = 'fronius-tps-400i';
     const previousCmtModel = 'Fronius TPS 400i · CMT 패키지 적용 시';
-    const defaultNickname = '현장 담당자';
+    const defaultNickname = '아뇨아뇨아뇨아뇨';
+    const previousDefaultNickname = '현장 담당자';
     const defaultPoint = '설비 외부 지정 위치';
     const photoPrefix = 'data:image/jpeg;base64,';
     const maxDevicePhotoLength = 180000;
@@ -229,8 +230,8 @@
     }
 
     function persist(state) {
-        const { catalogVersion: version, nickname, devices, reports } = state;
-        const data = { catalogVersion: version, nickname, devices, reports };
+        const { catalogVersion: version, nickname, nicknameCustomized = false, devices, reports } = state;
+        const data = { catalogVersion: version, nickname, nicknameCustomized, devices, reports };
         try {
             global.localStorage.setItem(storageKey, JSON.stringify(data));
             sessionState = null;
@@ -329,6 +330,9 @@
             }
             const previousVersion = Number.isInteger(state.catalogVersion) ? state.catalogVersion : 0;
             const needsMigration = previousVersion < catalogVersion;
+            const useDefaultNickname = !state.nickname.trim() ||
+                (state.nickname === previousDefaultNickname && state.nicknameCustomized !== true);
+            const nickname = useDefaultNickname ? defaultNickname : state.nickname;
             const devices = (needsMigration ? migrateCatalog(state.devices, previousVersion) : state.devices).map(device => ({
                 ...device,
                 image: device.image && !isDevicePhoto(device.image) ? bundledImage(device) : device.image,
@@ -336,7 +340,10 @@
             }));
             if (needsMigration) {
                 const reports = state.reports.map(report => shortenCmtModel(report, report.deviceId));
-                return persist({ ...state, catalogVersion, devices, reports });
+                return persist({ ...state, catalogVersion, nickname, devices, reports });
+            }
+            if (useDefaultNickname) {
+                return { ...persist({ ...state, nickname }), devices };
             }
             return { ...state, devices, storageIssue: '' };
         } catch {
@@ -356,7 +363,7 @@
 
     function setNickname(value) {
         const nickname = text(value, '별명', 20);
-        return persist({ ...load(), nickname });
+        return persist({ ...load(), nickname, nicknameCustomized: true });
     }
 
     function saveDevice(input) {
