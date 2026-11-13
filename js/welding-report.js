@@ -209,14 +209,16 @@
     function render(report, { image, canRepeat }) {
         const signal = globalThis.WeldingSignal;
         const assessment = globalThis.WeldingCase;
-        const recordedAt = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(report.createdAt));
+        const createdAt = new Date(report.createdAt);
+        const recordedAt = Number.isNaN(createdAt.getTime()) ? ''
+            : new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(createdAt);
         const equipment = image || globalThis.TenData.homeDemoDevice().image;
         return `<article class="weld-report" data-weld-report aria-label="CMT 용접기 AI 분석 리포트">
             <header class="weld-identity">
                 <div class="weld-identity-copy">
                     <h2>${escape(report.deviceName)}</h2>
                     <p class="weld-model">${escape(report.model)}</p>
-                    <p class="weld-date">분석 일시 · ${escape(recordedAt)}</p>
+                    ${recordedAt ? `<p class="weld-date">분석 일시 · ${escape(recordedAt)}</p>` : ''}
                 </div>
                 <div class="weld-photo"><img class="weld-equipment-photo" src="${escape(equipment)}" alt="" width="768" height="768"></div>
             </header>

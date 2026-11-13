@@ -5,13 +5,13 @@
     /* Instagram-like Minimal Palette -> Emotional Clean Palette */
     --primary: #262626;
     --primary-light: #525252;
-    --accent: #5D9CEC;
+    --accent: #0968d7;
     /* Soft Blue */
     --secondary: #FF6B6B;
     /* Soft Red */
 
     /* Emotional Gradients */
-    --bg-gradient-safe: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    --bg-gradient-safe: linear-gradient(150deg, #f5faff 0%, #e6f1ff 100%);
     /* Clouds */
     --bg-gradient-safe-accent: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
     /* Airy Blue */
@@ -30,12 +30,12 @@
     --status-danger: #FF6B6B;
     /* Red */
 
-    --bg-main: #fdfbfb;
+    --bg-main: #f7faff;
     /* Almost white, warm */
     --bg-secondary: #f4f6f8;
 
-    --text-main: #2d3436;
-    --text-sub: #636e72;
+    --text-main: #172438;
+    --text-sub: #566579;
 
     --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-display: 'Inter', sans-serif;
@@ -140,7 +140,7 @@ main {
     color: white;
     border: none;
     padding: 14px 24px;
-    border-radius: 8px;
+    border-radius: 14px;
     /* Less rounded */
     font-size: 0.95rem;
     font-weight: 600;
@@ -605,7 +605,7 @@ main {
     -webkit-backdrop-filter: blur(12px);
     padding: 12px 24px;
     position: absolute;
-    bottom: 30px;
+    bottom: max(20px, env(safe-area-inset-bottom));
     /* Floating from bottom */
     left: 50%;
     transform: translateX(-50%);
@@ -642,7 +642,7 @@ main {
 
 .bottom-nav button.active {
     color: white;
-    background: var(--primary);
+    background: var(--accent);
     /* Active circle */
     opacity: 1;
     transform: translateY(-2px);
@@ -3077,9 +3077,9 @@ body {
     width: min(100%, 340px);
     margin-top: 12px;
     padding: 10px 12px 12px;
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid #dbe5ee;
-    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #dbe7f4;
+    border-radius: 20px;
 }
 
 .tag-ready .scan-help {
@@ -3094,9 +3094,9 @@ body {
     width: 100%;
     max-width: 340px;
     flex-shrink: 0;
-    border: 1px solid #dbe5ee;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid #dbe7f4;
+    border-radius: 20px;
+    background: #fff;
 }
 
 .scan-controls summary {
@@ -3122,8 +3122,8 @@ body {
 .scan-controls input {
     width: 100%;
     min-height: 46px;
-    border: 1px solid #c9d0d4;
-    border-radius: 8px;
+    border: 1px solid #cad8e8;
+    border-radius: 14px;
     background: white;
     color: var(--text-main);
     padding: 8px 12px;
@@ -3157,6 +3157,15 @@ body {
 .scan-controls .scan-secondary {
     width: 100%;
     margin-top: 8px;
+    background: #e9f3ff;
+    color: #103461;
+    border-color: #c7dff8;
+    border-radius: 14px;
+}
+
+.scan-controls :is(button, summary, input, select):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 .add-point-settings {
@@ -3311,8 +3320,9 @@ body {
 .scan-history-entry {
     margin: 12px 0;
     padding: 12px;
-    border: 1px solid #dbe1e4;
-    border-radius: 10px;
+    border: 1px solid #dbe7f4;
+    border-radius: 14px;
+    background: #f4f8fd;
     overflow-wrap: anywhere;
 }
 

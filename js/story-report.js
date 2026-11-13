@@ -8,14 +8,16 @@
     const icon = (name, size) => globalThis.DemoIcon?.(name, size) || '';
     const hz = value => number.format(value) + ' Hz';
     const db = value => (value > 0 ? '+' : '') + value.toFixed(1) + ' dB';
-    const level = value => value.toFixed(1) + ' dBFS';
-
     function readSignal(report) {
         const valid = point => point && Number.isFinite(point.hz) &&
             Number.isFinite(point.baseline) && Number.isFinite(point.measured);
         const points = (Array.isArray(report.spectrum) ? report.spectrum : []).filter(valid)
             .sort((a, b) => a.hz - b.hz);
-        const samples = (Array.isArray(report.peaks) ? report.peaks : []).filter(valid);
+        const first = points[0]?.hz;
+        const last = points.at(-1)?.hz;
+        const hasRange = points.length > 1 && first < last;
+        const samples = (Array.isArray(report.peaks) ? report.peaks : []).filter(point =>
+            valid(point) && (!hasRange || (point.hz >= first && point.hz <= last)));
         const focus = (samples.length ? samples : points).reduce((winner, point) => {
             const change = Math.round((point.measured - point.baseline) * 10) / 10;
             return !winner || Math.abs(change) > Math.abs(winner.change) ? { ...point, change } : winner;
@@ -29,14 +31,16 @@
         const left = 32, right = 310, top = 30, bottom = 145;
         const minHz = points[0].hz;
         const maxHz = points.at(-1).hz;
-        const window = Math.max(26, (maxHz - minHz) * .055);
-        const start = zoom && focus ? Math.max(minHz, focus.hz - window) : minHz;
-        const end = zoom && focus ? Math.min(maxHz, focus.hz + window) : maxHz;
+        const span = maxHz - minHz;
+        const zoomHalfWidth = Math.min(Math.max(26, span * .055), span * .45);
+        const start = zoom && focus ? Math.max(minHz, focus.hz - zoomHalfWidth) : minHz;
+        const end = zoom && focus ? Math.min(maxHz, focus.hz + zoomHalfWidth) : maxHz;
         // Include the adjacent samples so the visible traces meet the viewport edges.
         const first = Math.max(0, points.findIndex(point => point.hz >= start) - 1);
         const last = points.findIndex(point => point.hz > end);
         const visible = points.slice(first, last === -1 ? undefined : last + 1);
         const levels = visible.flatMap(point => [point.baseline, point.measured]);
+        if (focus) levels.push(focus.baseline, focus.measured);
         const low = Math.floor(Math.min(...levels) / 10) * 10;
         const high = Math.max(low + 10, Math.ceil(Math.max(...levels) / 10) * 10);
         const x = value => left + (right - left) * (value - start) / (end - start);
@@ -79,8 +83,11 @@
     function skeleton(message = 'AI 분석 리포트를 준비하고 있어요.') {
         return `<div class="story-skeleton" role="status">
             <span class="story-sr-only">${escape(message)}</span>
+            <div class="story-skeleton-identity" aria-hidden="true">
+                <div><i></i><i></i><i></i></div><i class="story-skeleton-photo"></i>
+            </div>
             <div class="story-skeleton-hero" aria-hidden="true">
-                <i class="story-skeleton-orb"></i><i></i><i></i><i></i>
+                <i></i><i></i><i></i><i></i>
             </div>
             <div class="story-skeleton-section" aria-hidden="true">
                 <i></i><i class="story-skeleton-chart"></i>
@@ -89,7 +96,7 @@
     }
 
     function peakSentence(peak) {
-        if (!peak) return '비교음을 기준음과 같은 주파수 축에 놓아 살펴봤어요.';
+        if (!peak) return '표시할 수 있는 주파수 정보가 아직 없어요.';
         if (peak.change === 0) return `${hz(peak.hz)} 지점의 소리 레벨이 기준음과 같았어요.`;
         return `${hz(peak.hz)} 지점의 소리 레벨이 기준보다 ${Math.abs(peak.change).toFixed(1)} dB ${peak.change > 0 ? '높았어요' : '낮았어요'}.`;
     }
@@ -117,49 +124,47 @@
         const observations = Array.isArray(report.observations) ? report.observations.filter(Boolean) : [];
         const created = new Date(report.createdAt);
         const dateText = Number.isNaN(created.getTime()) ? '' : date.format(created);
+        const graph = chart(data);
+        const chartTitle = !focus ? '주파수 비교'
+            : status === 'stable' ? '어떤 소리를 비교했나요?' : '달라진 구간을 찾아봤어요';
         const availableQuestions = [
-            focus ? `왜 ${hz(focus.hz)}를 봤나요?` : '그래프는 어떻게 읽나요?',
+            focus ? `왜 ${hz(focus.hz)}를 봤나요?` : '기준음은 어떻게 비교하나요?',
             '다음 점검에서 뭘 확인해요?'
         ];
-        const graph = chart(data);
         const hasPhoto = /^assets\/equipment\/[^/\\]+\.png$/u.test(image) || globalThis.TenData?.isDevicePhoto?.(image);
 
         return `<article class="story-report" data-story-report aria-label="장비 가동음 AI 분석 리포트">
-            <div class="story-identity${hasPhoto ? ' has-photo' : ''}">
-                ${hasPhoto ? `<span class="story-identity-photo"><img src="${escape(image)}" alt="" decoding="async"></span>`
-                    : `<span class="story-identity-icon">${icon('devices', 20)}</span>`}
-                <div><p class="story-device">${escape(report.deviceName)}</p>
+            <header class="story-identity${hasPhoto ? ' has-photo' : ''}">
+                <div class="story-identity-copy"><h2 class="story-device">${escape(report.deviceName)}</h2>
                     ${report.model ? `<p class="story-model">${escape(report.model)}</p>` : ''}
                     ${report.point ? `<p class="story-identity-meta">${escape(report.point)}</p>` : ''}
                     ${dateText ? `<time datetime="${escape(report.createdAt)}">${escape(dateText)}</time>` : ''}</div>
-            </div>
+                ${hasPhoto ? `<span class="story-identity-photo"><img src="${escape(image)}" alt="" decoding="async"></span>` : ''}
+            </header>
             <section class="story-hero" aria-labelledby="story-title">
-                <div class="story-visual" aria-hidden="true">
-                    <span class="story-visual-orb">${icon('waveform', 37)}</span>
-                    <span class="story-visual-badge">${icon(status === 'stable' ? 'check' : 'info', 16)}</span>
-                </div>
-                <div class="story-hero-copy">
+                <div class="story-hero-top">
                     <span class="story-label">가동음 비교</span>
-                    <h2 id="story-title">${headline}</h2>
-                    <p class="story-lead">${escape(report.summary)}</p>
+                    <span class="story-status-icon" aria-hidden="true">${icon(status === 'stable' ? 'check' : 'waveform', 19)}</span>
                 </div>
+                <h3 id="story-title">${headline}</h3>
+                <p class="story-lead">${escape(report.summary)}</p>
             </section>
 
             <section class="story-section" data-story-reveal="slide" aria-labelledby="story-chart-title">
-                <h3 id="story-chart-title">${status === 'stable' ? '어떤 소리를 비교했나요?' : '달라진 구간을 찾아봤어요'}</h3>
+                <h3 id="story-chart-title">${chartTitle}</h3>
                 <p>${peakSentence(focus)}</p>
-                ${graph ? `<div class="story-chart-card">
+                ${graph ? `<figure class="story-chart-card">
                     <div class="story-chart-tools">
                         <div class="story-legend"><span>기준음</span><span>비교음</span></div>
                         ${focus ? '<button class="story-zoom" type="button" data-story-zoom aria-pressed="false">대역 확대</button>' : ''}
                     </div>
-                    <div class="story-chart-plot" data-story-chart>${graph}</div>
                     <p class="story-chart-unit">소리 레벨 (dBFS)</p>
-                    ${focus ? `<div class="story-chart-focus">
+                    <div class="story-chart-plot" data-story-chart>${graph}</div>
+                    ${focus ? `<figcaption class="story-chart-focus">
                         <div><span>살펴본 주파수</span><strong>${hz(focus.hz)}</strong></div>
                         <div><span>기준 대비</span><strong>${db(focus.change)}</strong></div>
-                    </div>` : ''}
-                </div>` : ''}
+                    </figcaption>` : ''}
+                </figure>` : ''}
             </section>
 
             <section class="story-section" data-story-reveal="zoom" aria-labelledby="story-meaning-title">

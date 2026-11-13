@@ -7,12 +7,12 @@
         settings: '<circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1a1.6 1.6 0 0 1 0 2.3l-.1.1a1.6 1.6 0 0 1-2.3 0l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5v.2a1.6 1.6 0 0 1-1.6 1.6h-.2a1.6 1.6 0 0 1-1.6-1.6v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a1.6 1.6 0 0 1-2.3 0l-.1-.1a1.6 1.6 0 0 1 0-2.3l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H4.2a1.6 1.6 0 0 1 0-3.2h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a1.6 1.6 0 0 1 0-2.3l.1-.1a1.6 1.6 0 0 1 2.3 0l.1.1a1.6 1.6 0 0 0 1.8.3 1.6 1.6 0 0 0 1-1.5v-.2a1.6 1.6 0 0 1 3.2 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a1.6 1.6 0 0 1 2.3 0l.1.1a1.6 1.6 0 0 1 0 2.3l-.1.1a1.6 1.6 0 0 0-.3 1.8 1.6 1.6 0 0 0 1.5 1h.2a1.6 1.6 0 0 1 0 3.2h-.2a1.6 1.6 0 0 0-1.5 1 1.6 1.6 0 0 0 .3 1.8Z" transform="translate(.2 1.1)"/>',
         user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 7-7h2a7 7 0 0 1 7 7v1"/>',
         reports: '<path d="M6 3h8l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M13 3v6h6M8 13h7m-7 4h5"/>',
+        code: '<path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-14-2 16"/>',
         chevron: '<path d="m9 18 6-6-6-6"/>',
         plus: '<path d="M12 5v14M5 12h14"/>',
         play: '<path d="m9 6 10 6-10 6z" fill="currentColor" stroke="none"/>',
         pause: '<path d="M9 5v14m6-14v14" stroke-width="2.6"/>',
         photo: '<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.4"/><path d="m4 17 4-3.8 3.2 2.7L16 11l4.5 4.7"/>',
-        trash: '<path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/>',
         link: '<path d="M10 13a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-2 2m3 5a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l2-2"/>',
         waveform: '<path d="M4 10v4m4-7v10m4-14v18m4-14v10m4-7v4"/>',
         check: '<path d="m5 12 4 4L19 6"/>',
@@ -34,10 +34,12 @@
         `<button type="button" class="icon-button" data-action="${action}" aria-label="${label}">${DemoIcon(symbol, 26)}</button>`;
 
     const sheetLayer = $('sheet-layer');
+    const mainScreen = $('main-screen');
     const sheet = $('app-sheet');
     const body = $('sheet-body');
     const nav = $('app-nav');
     const inventory = $('inventory-screen');
+    const settingsScreen = $('settings-screen');
     const homeScreen = $('home-screen');
     const homeGreeting = $('home-greeting');
     const greetingName = $('home-greeting-name');
@@ -50,6 +52,7 @@
     const demoDuration = 3000;
     const panels = [];
     let data = TenData.load();
+    let settingsData;
     let tab = 'home';
     let focusReturn = null;
     let toastTimer;
@@ -58,6 +61,10 @@
     let sheetLoadingTimer;
     let unmountStory;
     let drag = null;
+
+    function panelScroller() {
+        return body.querySelector('[data-managed-device-list], [data-managed-developer-list]') || body;
+    }
 
     function notice(message) {
         const toast = $('toast');
@@ -109,9 +116,12 @@
     function updateTab() {
         homeScreen.hidden = tab !== 'home';
         inventory.hidden = tab !== 'inventory';
-        $('settings-screen').hidden = tab !== 'settings';
+        settingsScreen.hidden = tab !== 'settings';
         if (tab === 'inventory') DemoInventory.render(inventory, data);
-        if (tab === 'settings') $('settings-screen').innerHTML = DemoViews.settings(data);
+        if (tab === 'settings' && settingsData !== data) {
+            settingsScreen.innerHTML = DemoViews.settings(data);
+            settingsData = data;
+        }
         nav.querySelectorAll('button').forEach(button => {
             if (button.dataset.tab === tab) button.setAttribute('aria-current', 'page');
             else button.removeAttribute('aria-current');
@@ -119,8 +129,14 @@
     }
 
     function panel(type, id, detail = {}) {
-        if (!panels.length) focusReturn = document.activeElement;
-        else panels.at(-1).scrollTop = body.scrollTop;
+        const previous = panels.at(-1);
+        if (!previous) focusReturn = document.activeElement;
+        else {
+            previous.scrollTop = panelScroller().scrollTop;
+            if (previous.type === 'device-story') {
+                previous.historyExpanded = body.querySelector('[data-inventory-history-more]')?.open ?? false;
+            }
+        }
         panels.push({ type, id, ...detail });
         drawPanel();
     }
@@ -130,7 +146,12 @@
         panels.length = 0;
         updateTab();
         drawPanel(false);
-        const destination = focusReturn?.isConnected ? focusReturn : nav.querySelector('[aria-current]');
+        const destination = focusReturn?.isConnected ? focusReturn
+            : (tab === 'inventory' ? inventory.querySelector('.inventory-card-button[tabindex="0"]')
+                : tab === 'settings' && focusReturn?.dataset.action
+                    ? [...settingsScreen.querySelectorAll('[data-action]')].find(button => button.dataset.action === focusReturn.dataset.action)
+                    : null)
+                || nav.querySelector('[aria-current]');
         destination?.focus({ preventScroll: true });
         focusReturn = null;
     }
@@ -170,13 +191,6 @@
         </div>`;
     }
 
-    function confirmView({ id }) {
-        const report = savedReport(id);
-        return `<div class="confirm-content"><p><strong>${escape(report?.deviceName)}</strong> 리포트를 삭제할까요?</p>
-            <div class="confirm-actions"><button class="btn-secondary" type="button" data-action="back-sheet">취소</button>
-                <button class="btn-danger" type="button" data-action="confirm-delete">삭제</button></div></div>`;
-    }
-
     function panelContent(current) {
         const { type, id } = current;
         switch (type) {
@@ -184,12 +198,17 @@
             case 'profile': return ['프로필 설정', DemoViews.profile(data)];
             case 'reports': return ['리포트 관리', DemoViews.reports(data)];
             case 'manage-devices': return ['보유장비 관리', DemoViews.devices(data)];
+            case 'manage-developers': return ['개발자 정보', DemoViews.developers(data)];
             case 'device-form': return ['장비 추가', DemoViews.deviceForm()];
+            case 'developer-form': {
+                const person = data.developers.find(developer => developer.id === id);
+                return [person ? '개발자 수정' : '개발자 추가', DemoViews.developerForm(person)];
+            }
             case 'measuring': return ['가동음 점검', measurement(activeDevice(id))];
             case 'device-story-loading': return ['장비 정보', StoryReport.skeleton('장비 정보를 불러오고 있어요.')];
             case 'device-story': {
                 const device = activeDevice(id);
-                return ['장비 정보', device ? DemoInventory.detailStory(device, data)
+                return ['장비 정보', device ? DemoInventory.detailStory(device, data, current)
                     : '<div class="empty-state"><strong>장비를 찾을 수 없습니다</strong></div>'];
             }
             case 'report-loading': return ['AI 분석 리포트', current.report?.recording === 'welding-demo'
@@ -205,7 +224,6 @@
                 return ['AI 분석 리포트', renderer.render(report, { canRepeat: Boolean(registered), image })];
             }
             case 'report-chat': return ['', ReportChat.render()];
-            case 'confirm': return ['삭제 확인', confirmView(current)];
             case 'missing-tag': return ['등록되지 않은 장비', '<div class="empty-state"><p>이 브라우저에 연결된 장비가 없습니다.</p><button class="btn-primary" type="button" data-action="add-device">장비 추가</button></div>'];
             case 'tag-link': return ['NFC 링크', `<div class="form-stack"><label class="field"><span>장비 링크</span>
                 <input id="tag-link-value" type="url" value="${escape(current.url)}" readonly></label></div>`];
@@ -222,9 +240,8 @@
         sheetLayer.inert = !open;
         sheetLayer.setAttribute('aria-hidden', String(!open));
         sheetLayer.classList.toggle('is-open', open);
-        $('home-screen').inert = open;
-        inventory.inert = open;
-        $('settings-screen').inert = open;
+        mainScreen.inert = open;
+        nav.inert = open;
         if (!open) return;
 
         const [title, html] = panelContent(current);
@@ -235,7 +252,7 @@
         $('sheet-back').hidden = panels.length < 2;
         body.innerHTML = html;
         body.setAttribute('aria-busy', String(current.type.endsWith('-loading')));
-        body.scrollTop = current.scrollTop || 0;
+        panelScroller().scrollTop = current.scrollTop || 0;
         if (current.type === 'report') {
             const report = current.report || savedReport(current.id);
             if (report) {
@@ -269,8 +286,12 @@
                 unmountStory = stopReveal;
             }
         } else if (current.type === 'manage-devices') {
-            DeviceManagement.mountList(body, removeManagedDevice);
-        } else if (current.type === 'device-form') {
+            DeviceManagement.mountList(body.querySelector('[data-managed-device-list]'), removeManagedDevice);
+        } else if (current.type === 'reports') {
+            DeviceManagement.mountList(body.querySelector('[data-managed-report-list]'), removeManagedReport);
+        } else if (current.type === 'manage-developers') {
+            DeviceManagement.mountList(body.querySelector('[data-managed-developer-list]'), removeManagedDeveloper);
+        } else if (current.type === 'device-form' || current.type === 'developer-form') {
             DeviceManagement.mountForm(body, notice);
         }
         if (focus) sheet.focus({ preventScroll: true });
@@ -409,14 +430,15 @@
             ...report.peaks.map(peak => peak.hz + ' Hz  ' + peak.baseline + ' / ' + peak.measured + '  (' + peak.change + ' dB)'),
             '', '분석 근거', ...report.observations, '', '확인할 항목', ...report.nextChecks
         ];
+        const createdAt = new Date(report.createdAt);
         const text = ['10초만 AI 분석 리포트', [report.deviceName, report.model].filter(Boolean).join(' · '),
-            date.format(new Date(report.createdAt)), '', report.statusLabel, report.summary, '', ...details]
+            Number.isNaN(createdAt.getTime()) ? '' : date.format(createdAt), '', report.statusLabel, report.summary, '', ...details]
             .filter(value => value != null).join('\r\n');
         const url = URL.createObjectURL(new Blob(['\ufeff', text], { type: 'text/plain;charset=utf-8' }));
         const anchor = document.createElement('a');
         anchor.href = url;
         anchor.download = '10초만-' + report.deviceName.replace(/[\\/:*?"<>|]/g, '_').slice(0, 50) + '.txt';
-        document.body.append(anchor);
+        sheet.append(anchor);
         anchor.click();
         anchor.remove();
         window.setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -426,13 +448,39 @@
         const current = panels.at(-1);
         const index = data.devices.findIndex(device => device.id === id);
         if (current?.type !== 'manage-devices' || index < 0) return;
-        current.scrollTop = body.scrollTop;
+        current.scrollTop = panelScroller().scrollTop;
         data = TenData.deleteDevice(id);
         drawPanel(false);
         const rows = body.querySelectorAll('[data-device-swipe-toggle]');
         const destination = rows[Math.min(index, rows.length - 1)] || body.querySelector('.managed-device-add');
         destination?.focus({ preventScroll: true });
         notice(data.storageIssue || '장비를 삭제했습니다.');
+    }
+
+    function removeManagedReport(id) {
+        const current = panels.at(-1);
+        const index = data.reports.findIndex(report => report.id === id);
+        if (current?.type !== 'reports' || index < 0) return;
+        current.scrollTop = body.scrollTop;
+        data = TenData.deleteReport(id);
+        drawPanel(false);
+        const rows = body.querySelectorAll('[data-managed-report-list] [data-swipe-front]');
+        const destination = rows[Math.min(index, rows.length - 1)] || sheet;
+        destination.focus({ preventScroll: true });
+        notice(data.storageIssue || '리포트를 삭제했습니다.');
+    }
+
+    function removeManagedDeveloper(id) {
+        const current = panels.at(-1);
+        const index = data.developers.findIndex(person => person.id === id);
+        if (current?.type !== 'manage-developers' || index < 0) return;
+        current.scrollTop = panelScroller().scrollTop;
+        data = TenData.deleteDeveloper(id);
+        drawPanel(false);
+        const rows = body.querySelectorAll('[data-managed-developer-list] [data-swipe-front]');
+        const destination = rows[Math.min(index, rows.length - 1)] || body.querySelector('[data-action="add-developer"]');
+        destination?.focus({ preventScroll: true });
+        notice(data.storageIssue || '개발자 정보를 삭제했습니다.');
     }
 
     function save(form) {
@@ -449,8 +497,24 @@
                 if (form.elements.image.files.length && !image) return;
                 data = TenData.saveDevice({ name: fields.name, details: fields.details, image });
                 back();
-                if (panels.at(-1)?.type === 'manage-devices') body.scrollTop = body.scrollHeight;
+                if (panels.at(-1)?.type === 'manage-devices') {
+                    const scroller = panelScroller();
+                    scroller.scrollTop = scroller.scrollHeight;
+                }
                 notice(data.storageIssue || '장비를 추가했습니다.');
+            } else if (form.dataset.form === 'developer') {
+                const current = panels.at(-1);
+                if (current?.type !== 'developer-form' || form.querySelector('[type="submit"]').disabled) return;
+                const image = form.querySelector('[data-device-photo-preview]').getAttribute('src') || '';
+                const { id } = current;
+                data = TenData.saveDeveloper({ id, name: fields.name, role: fields.role, image });
+                back();
+                if (panels.at(-1)?.type === 'manage-developers') {
+                    const rows = [...body.querySelectorAll('[data-managed-developer-list] [data-swipe-row]')];
+                    const saved = id ? rows.find(row => row.dataset.swipeRow === id) : rows.at(-1);
+                    saved?.querySelector('[data-swipe-front]').focus();
+                }
+                notice(data.storageIssue || (id ? '개발자 정보를 저장했습니다.' : '개발자를 추가했습니다.'));
             }
         } catch (error) {
             notice(error.message);
@@ -467,22 +531,20 @@
                     beginDemo(TenData.homeDemoDevice(), true);
                 }
                 break;
-            case 'open-device': panel('device', id); break;
             case 'device-story': openDeviceStory(id, trigger); break;
             case 'add-device': panel('device-form'); break;
             case 'edit-profile': panel('profile'); break;
             case 'manage-reports': panel('reports'); break;
             case 'manage-devices': panel('manage-devices'); break;
+            case 'manage-developers': panel('manage-developers'); break;
+            case 'add-developer': panel('developer-form'); break;
+            case 'edit-developer':
+                if (data.developers.some(person => person.id === id)) panel('developer-form', id);
+                break;
+            case 'remove-developer': removeManagedDeveloper(id); break;
             case 'open-report': panel('report', id); break;
             case 'remove-device': removeManagedDevice(id); break;
-            case 'remove-report': panel('confirm', id); break;
-            case 'confirm-delete': {
-                const current = panels.at(-1);
-                data = TenData.deleteReport(current.id);
-                back();
-                notice(data.storageIssue || '리포트를 삭제했습니다.');
-                break;
-            }
+            case 'remove-report': removeManagedReport(id); break;
             case 'run-demo': beginDemo(activeDevice(id)); break;
             case 'remeasure': remeasure(id); break;
             case 'copy-tag-link': void copyTag(id); break;
@@ -504,6 +566,18 @@
         save(event.target);
     });
     document.addEventListener('keydown', event => {
+        if (event.key === 'Tab' && panels.length) {
+            const stops = [...sheet.querySelectorAll('button, input, textarea, select, a[href], summary, [tabindex]')]
+                .filter(control => control.tabIndex >= 0 && !control.matches(':disabled') &&
+                    !control.closest('[inert]') && control.getClientRects().length > 0);
+            const target = document.activeElement;
+            if (stops.length && (target === sheet || !stops.includes(target) ||
+                target === (event.shiftKey ? stops[0] : stops.at(-1)))) {
+                event.preventDefault();
+                (event.shiftKey ? stops.at(-1) : stops[0]).focus();
+            }
+            return;
+        }
         if (event.key !== 'Escape') return;
         if (panels.length) back();
         else if (session) stopDemo();

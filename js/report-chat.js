@@ -112,7 +112,7 @@
             '<li class="report-chat-start"><time datetime="' + startedAt.toISOString() + '">' +
             escape(chatDate.format(startedAt)) + '</time></li></ol>' +
             '<p class="visually-hidden" data-report-chat-announcement role="status" aria-atomic="true"></p>' +
-            '<div class="report-chat-dock">' + composer() + '</div></section>';
+            '<div class="report-chat-dock">' + composer({ placeholder: '질문을 입력하세요' }) + '</div></section>';
     }
 
     function equipmentAnswer(topic, referringBack, device, report) {
@@ -427,5 +427,5 @@
         };
     }
 
-    globalThis.ReportChat = { composer, bindComposer, questions, bindQuestions, render, mount };
+    globalThis.ReportChat = { questions, bindQuestions, render, mount };
 })();

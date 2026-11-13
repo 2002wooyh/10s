@@ -1,18 +1,18 @@
 (function (global) {
     'use strict';
 
-    function mountList(container, onDelete) {
-        const list = container.querySelector('[data-managed-device-list]');
+    function mountList(list, onDelete) {
         if (!list) return;
 
+        const actionSelector = '[data-swipe-edit], [data-swipe-delete]';
         let openRow = null;
         let swipe = null;
         let suppressClick = false;
 
         function setExpanded(row, expanded) {
             row.classList.toggle('is-open', expanded);
-            row.querySelector('[data-device-swipe-toggle]').setAttribute('aria-expanded', String(expanded));
-            row.querySelector('.managed-device-delete').inert = !expanded;
+            row.querySelector('[data-swipe-front]').setAttribute('aria-expanded', String(expanded));
+            row.querySelectorAll(actionSelector).forEach(action => { action.inert = !expanded; });
         }
 
         function reveal(row) {
@@ -25,26 +25,21 @@
         list.addEventListener('pointerdown', event => {
             if (!event.isPrimary || event.button !== 0) return;
             suppressClick = false;
-            const deleteButton = event.target.closest('.managed-device-delete');
-            if (event.pointerType === 'touch' && deleteButton && !deleteButton.inert) {
-                const row = deleteButton.closest('[data-managed-device]');
-                swipe = { row, id: event.pointerId, x: event.clientX, y: event.clientY, deleteButton };
-                return;
-            }
-            const front = event.target.closest('[data-device-swipe-toggle]');
-            if (!front) return;
-            const row = front.closest('[data-managed-device]');
-            swipe = { row, id: event.pointerId, x: event.clientX, y: event.clientY, wasOpen: row === openRow, horizontal: false };
+            const front = event.target.closest('[data-swipe-front]');
+            const action = event.target.closest(actionSelector);
+            const row = (front || action)?.closest('[data-swipe-row]');
+            if (!row || (!front && (action.inert || row !== openRow))) return;
+            const actions = row.querySelector('[data-swipe-actions]') || row.querySelector('[data-swipe-delete]');
+            swipe = {
+                row, id: event.pointerId, x: event.clientX, y: event.clientY,
+                wasOpen: row === openRow, horizontal: false, action, actionWidth: actions.offsetWidth
+            };
         });
 
         list.addEventListener('pointermove', event => {
             if (swipe?.id !== event.pointerId) return;
             const dx = event.clientX - swipe.x;
             const dy = event.clientY - swipe.y;
-            if (swipe.deleteButton) {
-                if (Math.hypot(dx, dy) > 9) swipe = null;
-                return;
-            }
             if (!swipe.horizontal) {
                 if (Math.max(Math.abs(dx), Math.abs(dy)) < 10) return;
                 suppressClick = true;
@@ -56,29 +51,30 @@
                 if (event.pointerType === 'mouse') swipe.row.setPointerCapture(event.pointerId);
                 swipe.row.classList.add('is-swiping');
             }
-            const actionWidth = swipe.row.querySelector('.managed-device-delete').offsetWidth;
+            const { actionWidth } = swipe;
             const offset = (swipe.wasOpen ? -actionWidth : 0) + dx;
             swipe.row.style.setProperty('--device-swipe-offset', Math.max(-actionWidth - 46, Math.min(0, offset)) + 'px');
         });
 
         function finishSwipe(event) {
             if (swipe?.id !== event.pointerId) return;
-            const { row, x, y, wasOpen, horizontal, deleteButton } = swipe;
+            const { row, x, y, wasOpen, horizontal, action } = swipe;
             swipe = null;
-            if (deleteButton) {
-                const insideButton = deleteButton.contains(document.elementFromPoint(event.clientX, event.clientY));
-                if (event.type === 'pointerup' && row === openRow && insideButton &&
-                    Math.hypot(event.clientX - x, event.clientY - y) <= 9) {
-                    onDelete(row.dataset.managedDevice);
+            if (!horizontal) {
+                if (action && event.pointerType === 'touch' && event.type === 'pointerup' && row === openRow &&
+                    Math.hypot(event.clientX - x, event.clientY - y) <= 9 &&
+                    action.contains(document.elementFromPoint(event.clientX, event.clientY))) {
+                    suppressClick = true;
+                    if (action.matches('[data-swipe-delete]')) onDelete(row.dataset.swipeRow);
+                    else action.click();
                 }
                 return;
             }
-            if (!horizontal) return;
             row.classList.remove('is-swiping');
             row.style.removeProperty('--device-swipe-offset');
             if (event.type !== 'pointerup') return;
             const distance = event.clientX - x;
-            if (distance <= -46 && wasOpen) onDelete(row.dataset.managedDevice);
+            if (distance <= -46 && wasOpen) onDelete(row.dataset.swipeRow);
             else if (distance <= -46) reveal(row);
             else if (distance >= 36 && wasOpen) reveal(null);
         }
@@ -97,22 +93,28 @@
                 event.stopPropagation();
                 return;
             }
-            const front = event.target.closest('[data-device-swipe-toggle]');
-            if (front) {
-                const row = front.closest('[data-managed-device]');
+            const front = event.target.closest('[data-swipe-front]');
+            if (!front) return;
+            const row = front.closest('[data-swipe-row]');
+            if (front.hasAttribute('data-action')) {
+                if (row === openRow) {
+                    reveal(null);
+                    event.stopPropagation();
+                }
+            } else {
                 reveal(row === openRow ? null : row);
             }
         });
 
         list.addEventListener('keydown', event => {
-            const row = event.target.closest('[data-managed-device]');
+            const row = event.target.closest('[data-swipe-row]');
             if (event.key === 'ArrowLeft' && row) {
                 event.preventDefault();
                 reveal(row);
             } else if (openRow && (event.key === 'ArrowRight' || event.key === 'Escape')) {
                 event.preventDefault();
                 event.stopPropagation();
-                openRow.querySelector('[data-device-swipe-toggle]').focus({ preventScroll: true });
+                openRow.querySelector('[data-swipe-front]').focus({ preventScroll: true });
                 reveal(null);
             }
         });
@@ -149,21 +151,34 @@
         const preview = form.querySelector('[data-device-photo-preview]');
         const prompt = form.querySelector('[data-device-photo-prompt]');
         const submit = form.querySelector('button[type="submit"]');
+        const remove = form.querySelector('[data-remove-photo]');
         let photoRequest = 0;
+
+        function displayPhoto(image) {
+            if (image) preview.setAttribute('src', image);
+            else preview.removeAttribute('src');
+            preview.hidden = !image;
+            prompt.hidden = Boolean(image);
+            if (remove) remove.hidden = !image;
+        }
+
+        remove?.addEventListener('click', () => {
+            photoRequest++;
+            input.value = '';
+            displayPhoto('');
+            submit.disabled = false;
+            input.focus({ preventScroll: true });
+        });
+
         input.addEventListener('change', async () => {
             const request = ++photoRequest;
             const file = input.files[0];
-            preview.removeAttribute('src');
-            preview.hidden = true;
-            prompt.hidden = false;
             submit.disabled = Boolean(file);
             if (!file) return;
             try {
                 const image = await normalizePhoto(file);
                 if (request !== photoRequest || !form.isConnected) return;
-                preview.src = image;
-                preview.hidden = false;
-                prompt.hidden = true;
+                displayPhoto(image);
             } catch {
                 if (request !== photoRequest || !form.isConnected) return;
                 input.value = '';

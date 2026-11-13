@@ -12,6 +12,12 @@
     const defaultPoint = '설비 외부 지정 위치';
     const photoPrefix = 'data:image/jpeg;base64,';
     const maxDevicePhotoLength = 180000;
+    const initialDevelopers = [
+        { id: 'developer-woo-yohan', name: '우요한', role: '팀장', image: '' },
+        { id: 'developer-kim-jihwan', name: '김지환', role: '도쿄러버', image: '' },
+        { id: 'developer-park-chaewon', name: '박채원', role: '1과대', image: '' },
+        { id: 'developer-kwon-yonghyeon', name: '권용현', role: '헬스트레이너', image: '' }
+    ];
     const statusLabels = {
         stable: '기준과 유사',
         attention: '변화 관찰',
@@ -227,12 +233,15 @@
             createReport(sampleById.get('kf5600'), new Date(now - 26 * 3600000).toISOString(), 'sample-kf5600'),
             createReport(sampleById.get('as50'), new Date(now - 51 * 3600000).toISOString(), 'sample-as50')
         ];
-        return { catalogVersion, nickname: defaultNickname, devices: structuredClone(sampleDevices), reports };
+        return {
+            catalogVersion, nickname: defaultNickname, devices: structuredClone(sampleDevices), reports,
+            developers: structuredClone(initialDevelopers)
+        };
     }
 
     function persist(state) {
-        const { catalogVersion: version, nickname, nicknameCustomized = false, devices, reports } = state;
-        const data = { catalogVersion: version, nickname, nicknameCustomized, devices, reports };
+        const { catalogVersion: version, nickname, nicknameCustomized = false, devices, reports, developers } = state;
+        const data = { catalogVersion: version, nickname, nicknameCustomized, devices, reports, developers };
         try {
             global.localStorage.setItem(storageKey, JSON.stringify(data));
             sessionState = null;
@@ -334,19 +343,21 @@
             const useDefaultNickname = !state.nickname.trim() ||
                 (state.nickname === previousDefaultNickname && state.nicknameCustomized !== true);
             const nickname = useDefaultNickname ? defaultNickname : state.nickname;
+            const needsDevelopers = !Object.hasOwn(state, 'developers');
+            const developers = needsDevelopers ? structuredClone(initialDevelopers) :
+                Array.isArray(state.developers) ? state.developers.filter(developer =>
+                    developer && ['id', 'name', 'role', 'image'].every(key => typeof developer[key] === 'string'))
+                    .map(developer => developer.image && !isDevicePhoto(developer.image) ? { ...developer, image: '' } : developer) : [];
             const devices = (needsMigration ? migrateCatalog(state.devices, previousVersion) : state.devices).map(device => ({
                 ...device,
                 image: device.image && !isDevicePhoto(device.image) ? bundledImage(device) : device.image,
                 details: typeof device.details === 'string' ? device.details : ''
             }));
-            if (needsMigration) {
-                const reports = state.reports.map(report => shortenCmtModel(report, report.deviceId));
-                return persist({ ...state, catalogVersion, nickname, devices, reports });
+            if (needsMigration || useDefaultNickname || needsDevelopers) {
+                const reports = needsMigration ? state.reports.map(report => shortenCmtModel(report, report.deviceId)) : state.reports;
+                return persist({ ...state, catalogVersion, nickname, devices, reports, developers });
             }
-            if (useDefaultNickname) {
-                return { ...persist({ ...state, nickname }), devices };
-            }
-            return { ...state, devices, storageIssue: '' };
+            return { ...state, devices, developers, storageIssue: '' };
         } catch {
             sessionState = initialState();
             sessionIssue = '저장된 점검 데이터를 읽지 못해 기본 목록을 표시합니다.';
@@ -365,6 +376,27 @@
     function setNickname(value) {
         const nickname = text(value, '별명', 20);
         return persist({ ...load(), nickname, nicknameCustomized: true });
+    }
+
+    function saveDeveloper(input) {
+        const state = load();
+        const existing = input.id ? state.developers.find(developer => developer.id === input.id) : null;
+        if (input.id && !existing) throw new Error('저장할 개발자 프로필을 찾지 못했습니다.');
+
+        const name = text(input.name, '개발자 이름', 60);
+        const role = text(input.role, '역할', 60);
+        const image = input.image === undefined ? existing?.image ?? '' : input.image;
+        if (image !== '' && !isDevicePhoto(image)) throw new Error('용량이 작은 JPEG 사진을 다시 선택해 주세요.');
+
+        const developer = { id: existing?.id ?? uniqueId('developer'), name, role, image };
+        const developers = existing ? state.developers.map(current => current.id === developer.id ? developer : current)
+            : [...state.developers, developer];
+        return persist({ ...state, developers });
+    }
+
+    function deleteDeveloper(id) {
+        const state = load();
+        return persist({ ...state, developers: state.developers.filter(developer => developer.id !== id) });
     }
 
     function saveDevice(input) {
@@ -426,5 +458,5 @@
     }
 
     global.TenData = { load, setNickname, saveDevice, deleteDevice, createReport, reportForDisplay, recordReport, deleteReport, homeDemoDevice,
-        isDevicePhoto, maxDevicePhotoLength };
+        saveDeveloper, deleteDeveloper, isDevicePhoto, maxDevicePhotoLength };
 })(globalThis);

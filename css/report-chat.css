@@ -6,13 +6,13 @@
     width: 100%;
     min-height: 54px;
     padding: 4px 5px 4px 10px;
-    border: 1px solid #dce4ef;
+    border: 1px solid var(--line);
     border-radius: 999px;
     background: #fff;
     box-shadow: 0 5px 18px rgba(34, 57, 88, .10);
 }
 
-.report-chat-composer:focus-within { border-color: #a4c9f0; }
+.report-chat-composer:focus-within { border-color: #a6ccf7; }
 
 .report-chat-composer-icon {
     display: grid;
@@ -43,12 +43,12 @@
     padding: 0;
     border: 0;
     border-radius: 50%;
-    background: #176dcc;
+    background: linear-gradient(135deg, #287bc9, #2563bc);
     color: #fff;
     transition: background-color .2s ease, color .2s ease;
 }
 
-.report-chat-composer button:hover { background: #105cba; }
+.report-chat-composer button:enabled:is(:hover, :active) { background: linear-gradient(135deg, #246fba, #2056aa); }
 .report-chat-composer button:disabled { background: #edf2f8; color: #596f87; }
 
 .report-chat-questions {
@@ -60,8 +60,8 @@
 
 .report-chat-questions h3 {
     margin: 0;
-    color: #192f4a;
-    font-size: clamp(1.07rem, 4.6vw, 1.25rem);
+    color: var(--ink);
+    font-size: var(--ui-heading-size);
     font-weight: 800;
     letter-spacing: -.034em;
     line-height: 1.4;
@@ -137,7 +137,7 @@
     gap: 14px;
     min-height: 0;
     margin: 0;
-    padding: 10px 20px 18px;
+    padding: 10px var(--sheet-gutter) 18px;
     overflow: auto;
     overscroll-behavior: contain;
     list-style: none;
@@ -164,7 +164,7 @@
     max-width: 100%;
     color: #1e354f;
     font-size: .88rem;
-    line-height: 1.6;
+    line-height: var(--ui-body-line);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     word-break: keep-all;
@@ -174,7 +174,7 @@
     max-width: 88%;
     padding: 9px 12px;
     border-radius: 17px 17px 5px 17px;
-    background: #e6f1ff;
+    background: var(--blue-soft);
     color: #18395f;
 }
 
@@ -221,12 +221,8 @@
 
 .report-chat-dock {
     flex: none;
-    padding: 8px 20px 12px;
+    padding: 8px var(--sheet-gutter) 12px;
     background: #fff;
-}
-
-@media (max-width: 350px) {
-    .report-chat-log, .report-chat-dock { padding-inline: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

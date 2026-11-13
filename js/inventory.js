@@ -179,8 +179,18 @@
         return (histories(data).get(device.id) ?? []).find(report => sameModel(report, device));
     }
 
-    function detailStory(device, data) {
+    function historyList(reports, device) {
+        return `<ul class="inventory-list">${reports.map(report => `<li><button type="button" class="inventory-history-row" data-action="open-report" data-id="${escape(report.id)}">
+            <span class="inventory-row-icon">${icon('reports', 19)}</span><span class="inventory-row-copy"><strong>AI 분석 리포트</strong>
+            <small>${escape(displayDate(report.createdAt, formatRecordDate))} · ${escape(report.point)}</small>
+            ${!sameModel(report, device) && report.model ? `<small>이전 모델 · ${escape(report.model)}</small>` : ''}</span>
+            ${statusChip(report)}${icon('chevron', 16)}</button></li>`).join('')}</ul>`;
+    }
+
+    function detailStory(device, data, { historyExpanded = false } = {}) {
         const reports = histories(data).get(device.id) ?? [];
+        const recentReports = reports.slice(0, 3);
+        const olderReports = reports.slice(3);
         const currentReports = reports.filter(report => sameModel(report, device));
         const latest = currentReports[0];
         const peak = strongestPeak(latest);
@@ -200,7 +210,7 @@
                 <div class="inventory-hero-image" aria-hidden="true">${image(device)}</div>
             </header>
             <section class="inventory-summary">
-                <div class="inventory-summary-heading"><h3>최근 분석 요약</h3></div>
+                <div class="inventory-summary-heading"><h3>최근 AI 분석 리포트</h3></div>
                 <p>${latest ? escape(latest.summary) : reports.length ? '현재 모델의 분석 기록이 아직 없어요.' : '이 장비는 아직 저장된 분석 결과가 없어요.'}</p>
                 ${peak ? evidenceMarkup(peak) : ''}
                 ${latest ? `<button class="inventory-text-button" type="button" data-action="open-report" data-id="${escape(latest.id)}">${latest.recording ? '녹음과 분석 보기' : '최근 리포트 보기'} ${icon('chevron', 16)}</button>` : ''}
@@ -217,11 +227,11 @@
             ${trendMarkup(latest, currentReports, peak)}${checksMarkup(latest)}
             <section class="inventory-history" data-inventory-reveal><div class="inventory-section-heading"><h3>점검 기록</h3>
                 <span>전체 <strong>${reports.length}건</strong></span></div>
-                ${reports.length ? `<ul class="inventory-list">${reports.map(report => `<li><button type="button" class="inventory-history-row" data-action="open-report" data-id="${escape(report.id)}">
-                    <span class="inventory-row-icon">${icon('reports', 19)}</span><span class="inventory-row-copy"><strong>AI 분석 리포트</strong>
-                    <small>${escape(displayDate(report.createdAt, formatRecordDate))} · ${escape(report.point)}</small>
-                    ${!sameModel(report, device) && report.model ? `<small>이전 모델 · ${escape(report.model)}</small>` : ''}</span>
-                    ${statusChip(report)}${icon('chevron', 16)}</button></li>`).join('')}</ul>` : '<p class="inventory-empty-copy">점검을 완료하면 이곳에서 리포트를 볼 수 있어요.</p>'}
+                ${recentReports.length ? historyList(recentReports, device) : '<p class="inventory-empty-copy">점검을 완료하면 이곳에서 리포트를 볼 수 있어요.</p>'}
+                ${olderReports.length ? `<details class="inventory-history-more" data-inventory-history-more${historyExpanded ? ' open' : ''}>
+                    <summary><span class="inventory-history-expand">더보기</span><span class="inventory-history-collapse">접기</span>${icon('chevron', 16)}</summary>
+                    ${historyList(olderReports, device)}
+                </details>` : ''}
             </section>
             ${global.ReportChat.questions({ id: 'inventory-questions-title', questions })}
         </article>`;
@@ -233,19 +243,12 @@
         const observer = new IntersectionObserver((entries, observer) => {
             for (const entry of entries) {
                 if (!entry.isIntersecting) continue;
-                entry.target.classList.remove('inventory-scroll-pending');
                 entry.target.classList.add('inventory-scroll-entered');
                 observer.unobserve(entry.target);
             }
         }, { root: scrollRoot, rootMargin: '0px 0px -14px' });
-        for (const section of sections) {
-            section.classList.add('inventory-scroll-pending');
-            observer.observe(section);
-        }
-        return () => {
-            observer.disconnect();
-            sections.forEach(section => section.classList.remove('inventory-scroll-pending'));
-        };
+        sections.forEach(section => observer.observe(section));
+        return () => observer.disconnect();
     }
 
     function stopScroll() {
@@ -462,10 +465,7 @@
 
     function render(element, nextState) {
         if (root === element && state === nextState) return;
-        if (root !== element) {
-            dispose();
-            root = element;
-        }
+        root = element;
         state = nextState;
         draw();
     }
@@ -480,11 +480,5 @@
         if (deck?.clientWidth) centerSelection();
     }
 
-    function dispose() {
-        stopScroll();
-        root = null;
-        state = null;
-    }
-
-    global.DemoInventory = { render, refresh, focusDevice, dispose, detailStory, mountStory, latestReport };
+    global.DemoInventory = { render, refresh, focusDevice, detailStory, mountStory, latestReport };
 })(globalThis);
