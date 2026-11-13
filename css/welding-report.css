@@ -1,13 +1,22 @@
 .weld-report {
     --weld-ink: #192638;
     --weld-muted: #54667b;
-    --weld-line: #e6edf5;
-    --weld-blue: #1666bd;
-    --weld-pale: #f3f8ff;
+    --weld-line: #e3edf9;
+    --weld-accent: #2574ca;
+    --weld-accent-ink: #205b9c;
+    --weld-accent-border: #d9eaff;
+    --weld-accent-track: #d9e9fb;
+    --weld-accent-plot: #287bc9;
+    --weld-accent-fill: #e1f0ff;
+    --weld-gradient: linear-gradient(135deg, var(--scan-sky), #3489ee);
+    --weld-button-gradient: linear-gradient(135deg, #a4d8ff, #65aff7);
+    --weld-button-hover-gradient: linear-gradient(135deg, #93d0ff, #58a4ef);
+    --weld-button-ink: #103461;
+    --weld-send-gradient: linear-gradient(135deg, #287bc9, #2563bc);
     --weld-radius: 22px;
     --weld-pad: clamp(13px, 4.4vw, 19px);
     display: grid;
-    gap: clamp(14px, 4.2vw, 19px);
+    gap: clamp(27px, 7.7vw, 36px);
     min-width: 0;
     color: var(--weld-ink);
     animation: weld-report-enter .36s cubic-bezier(.18, .72, .24, 1) both;
@@ -70,40 +79,225 @@
     transform: translate(-50%, -50%);
 }
 
-.weld-assessment {
+.weld-score {
     display: grid;
-    gap: 8px;
     min-width: 0;
-    padding: var(--weld-pad);
-    border: 1px solid #e2ecfb;
+    padding: clamp(17px, 5.5vw, 24px);
+    border: 1px solid var(--weld-accent-border);
     border-radius: var(--weld-radius);
-    background: linear-gradient(140deg, #f8fbff, #eef5ff);
+    background: linear-gradient(145deg, #f4faff 0%, #edf6ff 55%, #e6f1ff 100%);
 }
 
-.weld-assessment-label {
-    display: inline-flex;
-    width: fit-content;
-    align-items: center;
-    gap: 6px;
-    color: #2d5c8e;
-    font-size: .73rem;
+.weld-score-label {
+    color: #325d8a;
+    font-size: .82rem;
     font-weight: 780;
     line-height: 1.4;
 }
 
-.weld-assessment .weld-assessment-label { color: var(--weld-blue); font-size: .73rem; line-height: 1.4; }
-.weld-assessment-label svg { flex: none; }
-.weld-assessment h3 {
-    font-size: clamp(1.18rem, 5.3vw, 1.43rem);
-    letter-spacing: -.048em;
-    line-height: 1.29;
+.weld-score-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 6px;
+    margin-top: 7px;
+    color: #34567e;
+    font-size: .83rem;
+    font-weight: 690;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
 }
 
-.weld-assessment p, .weld-section > p, .weld-summary p {
-    color: var(--weld-muted);
-    font-size: .87rem;
-    line-height: 1.66;
+.weld-score-value strong {
+    color: var(--weld-accent-ink);
+    font-size: clamp(2.55rem, 12vw, 3.65rem);
+    font-weight: 820;
+    letter-spacing: -.075em;
+    line-height: 1.05;
 }
+
+.weld-score-track {
+    position: relative;
+    height: 8px;
+    overflow: hidden;
+    margin-top: 14px;
+    border-radius: 99px;
+    background: var(--weld-accent-track);
+}
+
+.weld-score-track i {
+    display: block;
+    width: var(--score);
+    height: 100%;
+    border-radius: inherit;
+    background: var(--weld-gradient);
+    transform-origin: left;
+    animation: weld-score-fill .65s cubic-bezier(.18, .72, .24, 1) .08s both;
+}
+
+@keyframes weld-score-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.weld-score-scale {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    color: #4d6686;
+    font-size: .66rem;
+    font-weight: 680;
+    font-variant-numeric: tabular-nums;
+}
+
+.weld-score-summary { margin-top: 17px; }
+.weld-score-summary h3 {
+    color: #172e4c;
+    font-size: clamp(1.18rem, 5.3vw, 1.43rem);
+    letter-spacing: -.045em;
+    line-height: 1.32;
+}
+
+.weld-score-summary p { margin-top: 8px; }
+.weld-score-summary p, .weld-section > p, .weld-next li p {
+    color: var(--weld-muted);
+    font-size: .9rem;
+    line-height: 1.85;
+}
+
+.weld-findings, .weld-next {
+    min-width: 0;
+    padding: 2px 1px 0;
+}
+
+.weld-findings h3, .weld-next h3, .weld-section h3 {
+    color: var(--weld-ink);
+    font-size: clamp(1.18rem, 5.1vw, 1.43rem);
+    letter-spacing: -.045em;
+    line-height: 1.3;
+}
+
+.weld-findings > header {
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--weld-line);
+}
+.weld-score .weld-player { margin-top: 14px; }
+.weld-player-status { margin-top: 6px; color: #8e3d20; font-size: .75rem; }
+
+.weld-finding {
+    display: grid;
+    gap: 13px;
+    min-width: 0;
+    padding-block: clamp(22px, 6.3vw, 29px);
+    border-bottom: 1px solid var(--weld-line);
+}
+
+.weld-finding:last-child { padding-bottom: 0; border-bottom: 0; }
+
+.weld-finding-head {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+}
+
+.weld-finding-head > div { min-width: 0; }
+.weld-finding-head small {
+    display: block;
+    color: #526983;
+    font-size: .71rem;
+    font-weight: 710;
+    line-height: 1.55;
+}
+
+.weld-finding-head h4 {
+    margin: 4px 0 0;
+    color: #203550;
+    font-size: clamp(.96rem, 4.35vw, 1.12rem);
+    letter-spacing: -.037em;
+    line-height: 1.45;
+}
+
+.weld-finding-icon {
+    display: grid;
+    width: 37px;
+    height: 37px;
+    flex: none;
+    place-items: center;
+    border-radius: 11px;
+    background: #f0ebff;
+    color: #6e55a2;
+}
+
+.weld-finding-meta {
+    color: #3e5979;
+    font-size: .72rem;
+    font-weight: 720;
+    line-height: 1.6;
+}
+
+.weld-finding-copy, .weld-finding-action {
+    color: var(--weld-muted);
+    font-size: .9rem;
+    line-height: 1.85;
+}
+
+.weld-finding-action {
+    padding-inline-start: 12px;
+    border-inline-start: 2px solid #a8cff8;
+    color: var(--weld-accent-ink);
+}
+
+.weld-finding-compare {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    padding: 13px 12px;
+    border-radius: 13px;
+    background: #f0f7ff;
+    font-size: .73rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.weld-finding-compare > div {
+    display: grid;
+    grid-template-columns: minmax(44px, auto) minmax(24px, 1fr) minmax(63px, auto);
+    align-items: center;
+    gap: 6px;
+}
+
+.weld-finding-compare span { color: #536984; overflow-wrap: anywhere; }
+.weld-finding-compare > p { color: #385a7c; font-weight: 700; line-height: 1.5; }
+.weld-finding-compare strong { color: var(--weld-accent-ink); text-align: end; }
+.weld-finding-compare > div > div {
+    height: 5px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--weld-accent-track);
+}
+
+.weld-finding-compare i {
+    display: block;
+    width: var(--value, 0%);
+    height: 100%;
+    border-radius: inherit;
+    background: #89b9ec;
+}
+
+.weld-finding-compare > div + div i { background: var(--weld-gradient); }
+
+.weld-next ul {
+    display: grid;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.weld-next li {
+    padding: 13px 0;
+    border-top: 1px solid var(--weld-line);
+}
+
+.weld-next li:last-child { padding-bottom: 0; }
+.weld-next li strong { display: block; font-size: .9rem; line-height: 1.55; }
+.weld-next li p { margin-top: 4px; }
 
 .weld-player {
     display: flex;
@@ -113,7 +307,7 @@
     min-width: 0;
     margin-top: 4px;
     padding: 4px;
-    border: 1px solid #e4edf9;
+    border: 1px solid var(--weld-accent-border);
     border-radius: 16px;
     background: #fff;
 }
@@ -128,15 +322,14 @@
     padding: 6px 11px;
     border: 1px solid transparent;
     border-radius: 12px;
-    background: #edf5ff;
-    color: var(--weld-blue);
+    background: var(--weld-button-gradient);
+    color: var(--weld-button-ink);
     font-size: .81rem;
     font-weight: 780;
     white-space: nowrap;
 }
 
-.weld-play:hover { background: #dbeaff; }
-.weld-play:active { background: #cde4ff; }
+.weld-play:is(:hover, :active) { background: var(--weld-button-hover-gradient); }
 .weld-play svg { flex: none; }
 .weld-player-track {
     display: grid;
@@ -160,13 +353,13 @@
 .weld-player-track input[type="range"]::-webkit-slider-runnable-track {
     height: 5px;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--weld-blue) var(--weld-played, 0%), #dce8f5 var(--weld-played, 0%));
+    background: linear-gradient(90deg, var(--weld-accent) var(--weld-played, 0%), var(--weld-accent-track) var(--weld-played, 0%));
 }
 
 .weld-player-track input[type="range"]::-moz-range-track {
     height: 5px;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--weld-blue) var(--weld-played, 0%), #dce8f5 var(--weld-played, 0%));
+    background: linear-gradient(90deg, var(--weld-accent) var(--weld-played, 0%), var(--weld-accent-track) var(--weld-played, 0%));
 }
 
 .weld-player-track input[type="range"]::-webkit-slider-thumb {
@@ -176,7 +369,7 @@
     margin-top: -4px;
     border: 0;
     border-radius: 50%;
-    background: var(--weld-blue);
+    background: var(--weld-accent);
 }
 
 .weld-player-track input[type="range"]::-moz-range-thumb {
@@ -184,7 +377,7 @@
     height: 13px;
     border: 0;
     border-radius: 50%;
-    background: var(--weld-blue);
+    background: var(--weld-accent);
 }
 
 .weld-player-track [data-weld-time] {
@@ -194,8 +387,6 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
-
-.weld-assessment .weld-player-status { color: #8e3d20; font-size: .75rem; }
 
 .weld-section {
     min-width: 0;
@@ -208,20 +399,77 @@
     background: #fff;
 }
 
-.weld-section h3, .weld-summary h3 {
-    font-size: clamp(1.18rem, 5.1vw, 1.43rem);
-    letter-spacing: -.045em;
-    line-height: 1.3;
-}
+.weld-section > p { margin-top: 8px; }
 
-.weld-section > p { margin-top: 5px; }
+.weld-conditions { padding: 0 1px; }
+.weld-conditions-estimate {
+    margin-inline-start: 4px;
+    color: #6f7e90;
+    font-size: .72rem;
+    font-weight: 550;
+    letter-spacing: 0;
+}
+.weld-conditions dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(15px, 5vw, 22px);
+    margin-top: 17px;
+    border-bottom: 1px solid var(--weld-line);
+}
+.weld-conditions dl > div {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    min-width: 0;
+    padding: 12px 1px 13px;
+    border-top: 1px solid var(--weld-line);
+}
+.weld-conditions dt {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: 6px;
+    color: var(--weld-muted);
+    font-size: .76rem;
+    font-weight: 650;
+    line-height: 1.5;
+}
+.weld-condition-name {
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+}
+.weld-condition-status {
+    justify-self: end;
+    padding: 1px 5px;
+    border-radius: 5px;
+    font-size: .66rem;
+    font-weight: 730;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.weld-condition-status[data-tone="good"] { color: #18714f; background: #eaf7f0; }
+.weld-condition-status[data-tone="caution"] { color: #9a4b07; background: #fff1e1; }
+.weld-condition-status[data-tone="high"] { color: #ac363f; background: #fcecef; }
+.weld-conditions dd {
+    margin-top: 5px;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+}
+.weld-conditions dd strong {
+    font-size: clamp(1.2rem, 5.5vw, 1.55rem);
+    letter-spacing: -.04em;
+}
+.weld-conditions dd span {
+    color: var(--weld-muted);
+    font-size: .76rem;
+    white-space: nowrap;
+}
 .weld-chart {
     min-width: 0;
     margin: 13px 0 0;
     background: #fff;
 }
 
-.weld-chart figcaption {
+.weld-chart figcaption:not(.weld-band-legend) {
     margin: 1px 1px 0;
     color: var(--weld-muted);
     font-size: .71rem;
@@ -256,36 +504,42 @@
 }
 
 .weld-waveform, .weld-spectrum-line {
-    stroke: #246fba;
+    stroke: var(--weld-accent-plot);
     stroke-width: 1.25;
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
 }
-.weld-waveform, .weld-spectrum-fill { fill: #e5f1ff; }
+.weld-waveform, .weld-spectrum-fill { fill: var(--weld-accent-fill); }
 .weld-spectrum-line { fill: none; }
-.weld-peak-dot { fill: #246fba; stroke: white; stroke-width: 1.3; vector-effect: non-scaling-stroke; }
+.weld-peak-dot { fill: var(--weld-accent-plot); stroke: white; stroke-width: 1.3; vector-effect: non-scaling-stroke; }
 
-.weld-signal-facts {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 4px 0 0;
-    padding: 11px 3px;
-    border-radius: 13px;
-    background: var(--weld-pale);
-    color: var(--weld-ink);
+.weld-band-gas { --weld-band-color: #63a7ef; }
+.weld-band-spatter { --weld-band-color: #a78bdd; }
+.weld-plot rect:is(.weld-band-gas, .weld-band-spatter) {
+    fill: var(--weld-band-color);
+    fill-opacity: .26;
 }
-.weld-signal-facts > div { min-width: 0; padding-inline: clamp(4px, 2vw, 10px); }
-.weld-signal-facts > div + div { border-inline-start: 1px solid var(--weld-line); }
-.weld-signal-facts dt { color: var(--weld-muted); font-size: .69rem; line-height: 1.4; }
-.weld-signal-facts dd {
-    margin-top: 4px;
-    color: var(--weld-blue);
-    font-size: clamp(.88rem, 4.2vw, 1.12rem);
-    font-weight: 780;
-    font-variant-numeric: tabular-nums;
+
+.weld-band-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 12px;
+    margin: 3px 1px 0;
+    color: var(--weld-muted);
+    font-size: .72rem;
+    line-height: 1.45;
 }
-.weld-signal-facts small { margin-inline-start: .22em; font-size: .62rem; font-weight: 650; }
+
+.weld-band-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.weld-band-legend i {
+    display: block;
+    width: 12px;
+    height: 9px;
+    flex: none;
+    border-radius: 3px;
+    background: var(--weld-band-color);
+}
 
 .weld-method {
     margin-top: 3px;
@@ -300,62 +554,36 @@
     cursor: pointer;
 }
 
-.weld-method p { padding-bottom: 10px; font-size: .75rem; line-height: 1.6; }
+.weld-method p { padding-bottom: 10px; font-size: .8rem; line-height: 1.8; }
 
 .weld-fft-note {
-    display: flex;
-    align-items: start;
-    gap: 8px;
-    margin-top: 12px;
-    color: var(--weld-blue);
-    font-size: .79rem;
-    line-height: 1.65;
+    margin-top: 16px;
+    font-size: .83rem;
+    line-height: 1.8;
 }
-.weld-fft-note svg { flex: none; margin-top: 1px; }
 .weld-fft-note p { color: var(--weld-muted); }
 
-.weld-summary {
-    display: grid;
-    gap: 10px;
-    min-width: 0;
-    padding: var(--weld-pad);
-    border: 1px solid var(--weld-line);
-    border-radius: var(--weld-radius);
-    background: #f7faff;
-}
-
-.weld-summary-checks {
-    display: grid;
-    gap: 0;
-    margin: 3px 0 0;
-}
-
-.weld-summary-checks > div {
-    display: grid;
-    gap: 4px;
-    padding: 11px 0;
-    border-top: 1px solid var(--weld-line);
-}
-
-.weld-summary-checks > div:last-child { padding-bottom: 0; }
-.weld-summary-checks dt { display: flex; align-items: center; gap: 8px; font-size: .86rem; font-weight: 740; }
-.weld-check-icon { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--weld-blue); background: #e8f2ff; }
-.weld-summary-checks dd {
-    padding-inline-start: 30px;
-    color: var(--weld-muted);
-    font-size: .81rem;
-    line-height: 1.5;
-}
-
 .weld-actions { display: flex; gap: 8px; min-width: 0; }
-.weld-actions button { flex: 1 1 0; min-height: 44px; padding-inline: 7px; font-size: .81rem; }
+.weld-actions .btn-secondary {
+    flex: 1 1 0;
+    min-height: 44px;
+    padding-inline: 7px;
+    border-color: transparent;
+    background: var(--weld-button-gradient);
+    color: var(--weld-button-ink);
+    font-size: .81rem;
+}
+.weld-actions .btn-secondary:is(:hover, :active) { background: var(--weld-button-hover-gradient); }
+.weld-report .report-chat-composer:focus-within { border-color: #a6ccf7; }
+.weld-report .report-chat-composer button:enabled { background: var(--weld-send-gradient); }
+.weld-report .report-chat-composer button:enabled:is(:hover, :active) { background: linear-gradient(135deg, #246fba, #2056aa); }
 
 .weld-skeleton { animation: none; }
 .weld-shimmer {
     display: block;
     height: 14px;
     border-radius: 7px;
-    background: linear-gradient(105deg, #e5edf7 18%, #f3f7fc 38%, #e5edf7 60%);
+    background: linear-gradient(105deg, #e3eefb 18%, #f4f9ff 38%, #e3eefb 60%);
     background-size: 220% 100%;
     animation: weld-shimmer 1.45s ease-in-out infinite;
 }
@@ -364,27 +592,22 @@
 .weld-skeleton-date { width: 91%; height: 13px; margin-top: 7px; }
 .weld-skeleton-photo { position: absolute; inset: 12% 10%; height: auto; border-radius: 21px; }
 .weld-skeleton-status { width: 64px; height: 16px; }
+.weld-skeleton-score { width: 31%; height: clamp(44px, 12vw, 60px); margin-top: 8px; }
+.weld-skeleton-score-track { width: 100%; height: 8px; margin-top: 14px; border-radius: 99px; }
+.weld-skeleton-score-scale { width: 100%; height: 10px; margin-top: 5px; }
+.weld-skeleton .weld-score-summary { display: grid; gap: 5px; }
 .weld-skeleton-heading { width: 77%; height: clamp(24px, 6.84vw, 30px); }
 .weld-skeleton-copy { width: 94%; height: 23px; }
+.weld-skeleton .weld-score-summary .weld-skeleton-copy { height: 53px; }
 .weld-skeleton .weld-player { min-height: 54px; }
-.weld-skeleton .weld-player i:first-child { width: 91px; height: 44px; border-radius: 12px; }
-.weld-skeleton .weld-player i:last-child { flex: 1; margin-inline-end: 5px; }
-.weld-skeleton .weld-chart-panel .weld-skeleton-copy { margin-top: 5px; }
-.weld-skeleton-plot { aspect-ratio: 320 / 159; }
-.weld-skeleton-plot .weld-shimmer { height: 100%; border-radius: 14px; }
+.weld-skeleton .weld-player i:first-child { width: 84px; height: 44px; border-radius: 12px; }
+.weld-skeleton .weld-player i:last-child { flex: 1; }
+.weld-conditions-placeholder { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 17px; }
+.weld-conditions-placeholder i { height: 45px; }
 
 @keyframes weld-shimmer {
     from { background-position: 120% 0; }
     to { background-position: -100% 0; }
-}
-
-.weld-reveal-enabled [data-weld-reveal] {
-    transition: opacity .37s ease, transform .52s cubic-bezier(.18, .72, .24, 1);
-}
-
-.weld-reveal-enabled [data-weld-reveal]:not(.is-in-view):not(:focus-within) {
-    opacity: 0;
-    transform: translateY(13px);
 }
 
 @keyframes weld-report-enter {
@@ -398,6 +621,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .weld-report, .weld-shimmer { animation: none; }
-    .weld-reveal-enabled [data-weld-reveal]:not(.is-in-view):not(:focus-within) { opacity: 1; transform: none; }
+    .weld-report, .weld-shimmer, .weld-score-track i { animation: none; }
 }

@@ -139,7 +139,7 @@
                     <span class="story-visual-badge">${icon(status === 'stable' ? 'check' : 'info', 16)}</span>
                 </div>
                 <div class="story-hero-copy">
-                    <span class="story-label">비교 분석 · 참고 신호</span>
+                    <span class="story-label">가동음 비교</span>
                     <h2 id="story-title">${headline}</h2>
                     <p class="story-lead">${escape(report.summary)}</p>
                 </div>
@@ -178,7 +178,7 @@
             </section>` : ''}
 
             <div class="story-actions" data-story-reveal="slide">
-                ${canRepeat ? `<button class="btn-primary" type="button" data-action="run-demo" data-id="${escape(report.deviceId)}">${icon('waveform', 19)} 다시 점검</button>` : ''}
+                ${canRepeat ? `<button class="btn-primary" type="button" data-action="remeasure" data-id="${escape(report.deviceId)}">${icon('waveform', 19)} 다시 측정</button>` : ''}
                 <button class="btn-secondary" type="button" data-action="download-report" data-id="${escape(report.id)}">${icon('download', 19)} 리포트 저장</button>
             </div>
             ${globalThis.ReportChat.questions({ id: 'story-question-title', questions: availableQuestions })}

@@ -4,6 +4,14 @@
     const escape = value => String(value ?? '').replace(/[&<>"']/g, character =>
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
     const number = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 2 });
+    const gasQuestion = /가스|유량|보호기체|l\s*\/\s*min/iu;
+    const conditionTopics = {
+        current: /전류|amperage|welding\s*current/iu,
+        voltage: /전압|voltage/iu,
+        wireFeedSpeed: /와이어\s*(송급|공급|이송)|송급\s*속도|\bwfs\b|wire\s*feed/iu,
+        ctwd: /\bctwd\b|콘택트\s*팁|접촉\s*팁|팁과\s*모재/iu,
+        travelSpeed: /(?:용접|이송|토치)\s*속도|travel\s*speed/iu
+    };
     const chatDate = new Intl.DateTimeFormat('ko-KR', {
         month: 'long', day: 'numeric', weekday: 'short', hour: 'numeric', minute: '2-digit'
     });
@@ -70,7 +78,10 @@
         const topics = [
             [/^([\d.,]+\s*Hz)는 어떤 의미인가요$/iu, match => match[1] + '의 의미'],
             [/^가스 유량은 어떻게 확인해요$/u, '보호가스 유량 확인'],
+            [/^아크가 왜 불안정한가요$/u, '아크 불안정 확인'],
+            [/^(용접|공정)\s*조건은 (어떤가요|어떻게 확인해요|무엇인가요)$/u, '용접 조건 확인'],
             [/^스패터는 어디를 봐야 하나요$/u, '스패터 확인 방법'],
+            [/^(?:(?:종합|참고|점검|분석) )?점수는 (어떻게 계산했나요|어떤 의미인가요)$/u, '종합 점수의 의미'],
             [/^다음 점검에서(는 뭘 비교해요| 뭘 확인해요)$/u, '다음 점검 항목'],
             [/^어떤 장비인가요$/u, '장비 소개'],
             [/^어디에서 소리를 측정하나요$/u, '가동음 측정 위치'],
@@ -138,6 +149,24 @@
         return [identification, details || (point ? '등록된 측정 위치는 ‘' + point + '’예요.' : '')].filter(Boolean).join('\n\n');
     }
 
+    function weldingConditionsAnswer(topic, referringBack, conditions) {
+        const requested = conditions.filter(condition => conditionTopics[condition.key]?.test(topic));
+        const general = /(?:용접|공정|운전|작업)\s*조건|(?:장비|용접)\s*설정|설정값|^조건(?:은|이|을)?(?=\s|[?!.]|$)/iu.test(topic);
+        const includesGas = gasQuestion.test(topic);
+        if (includesGas && !requested.length) return '';
+        const rows = requested.length ? requested : general ? conditions : [];
+        if (includesGas) rows.push(...conditions.filter(condition => condition.key === 'gasFlow'));
+        if (!rows.length) return '';
+
+        const values = rows.map(({ key, label, value, unit, status }) => {
+            const formatted = key === 'wireFeedSpeed' ? Number(value).toFixed(1) : number.format(value);
+            return label + ' ' + formatted + ' ' + unit + (status ? ' (' + status + ')' : '');
+        }).join(', ');
+        return '리포트의 조건별 추정값은 ' + values + '예요. ' + (referringBack ?
+            '전류·전압과 송급 속도는 장비 기록에서, CTWD와 용접 속도는 작업 기록에서 확인해요.' :
+            '실제 값은 장비 표시나 작업 기록과 대조해 주세요.');
+    }
+
     function reportAnswer(question, history, report, device, welding) {
         const text = question.normalize('NFKC');
         const followUp = /^(그래서|그러면|그럼|그건|그게|그 부분|그 수치|왜요|어떻게요|더 자세히)/u;
@@ -152,16 +181,34 @@
         }
 
         const signal = globalThis.WeldingSignal;
+        const assessment = globalThis.WeldingCase;
+        const conditionsAnswer = weldingConditionsAnswer(topic, referringBack, assessment.conditions);
+        if (conditionsAnswer) return conditionsAnswer;
+        const { gas, spatter } = assessment;
+        const gasStatus = assessment.conditions.find(condition => condition.key === 'gasFlow')?.status;
+        const gasStatusNote = gasStatus ? ' 리포트에는 ‘' + gasStatus + '’으로 표시했어요.' : '';
+        const gasPeak = assessment.gasPeak(signal);
+        const gasChange = assessment.gasChangeDb(signal);
+        const signedGasChange = (gasChange > 0 ? '+' : '') + number.format(gasChange) + ' dB';
+        const gasRange = gas.band.map(frequency => number.format(frequency)).join('~') + ' Hz';
+        const spatterRange = spatter.band.map(frequency => number.format(frequency)).join('~') + ' Hz';
         const replies = [
-            [/가스|유량|보호기체|l\s*\/\s*min/iu,
-                '보호가스 유량은 작업 중 유량계에 표시된 L/min과 해당 작업의 기준 유량을 비교해 확인해요. 이 리포트에는 유량계 기록이 없어요.',
-                '유량계 값과 작업 기준을 같은 단위(L/min)로 적어 두고, 어느 작업 구간의 값인지 함께 기록해 주세요. 그 구간의 가동음과 대조할 수 있어요.'],
+            [/점수|감점|산정|\d+\s*점/iu,
+                assessment.scoreLabel + '는 ' + assessment.score + '/' + assessment.maxScore + '점이에요. 점검 우선순위를 보여주며, 이 리포트에서는 아크 상태를 먼저 확인해요.',
+                '10초 녹음에서는 FFT 주파수와 디지털 레벨을 확인할 수 있어요. 용접 품질을 판단하려면 작업 영상, 전류·전압 기록, 비드 형상을 함께 살펴보세요.'],
+            [/아크|\barc\b/iu,
+                '리포트에서는 아크 불안정 가능성을 먼저 확인해요. 아크가 흔들리면 소리가 불규칙해지고 스패터가 동반될 수 있어요. 작업 영상이나 전류·전압 기록을 함께 보면 실제 상태를 확인하는 데 도움이 돼요.',
+                '같은 작업 구간의 소리와 전류·전압 기록을 나란히 보세요. 아크가 흔들리는 시점에 영상에서 금속 방울이 튀는지 확인하면 스패터도 함께 살펴볼 수 있어요.'],
+            [gasQuestion,
+                gasRange + '에서 가장 큰 성분은 ' + number.format(gasPeak.frequencyHz) + ' Hz, ' + number.format(gasPeak.dbFS) + ' dBFS예요. 비교 기준 ' + gas.referenceDbFS + ' dBFS와의 차이는 ' + signedGasChange + '예요. ' +
+                    '유량 비교 기준은 ' + gas.referenceFlow + ' L/min, 리포트의 추정값은 ' + gas.estimatedFlow + ' L/min이에요.' + gasStatusNote,
+                '유량계의 표시값을 L/min으로 기록해 실제 유량을 확인해요. ' + gas.estimatedFlow + ' L/min은 리포트에 표시된 추정값이고, ' + signedGasChange + '는 가동음의 차이예요.'],
             [/스패터|스파터|스펙터|spatter|금속\s*방울/iu,
-                '스패터는 용접선 주변에 튄 작은 금속 방울이에요. 작업 영상이나 용접 후 사진에서 확인할 수 있어요. 주파수 그래프는 사진과 함께 살펴보는 자료예요.',
-                '용접선과 그 주변을 사진에 함께 담고, 작업 영상에서 금속 방울이 튀는 시각을 적어 두면 같은 시각의 시간 파형을 찾아보기 쉬워요.'],
+                '스패터는 아크가 불안정할 때 동반될 수 있는 금속 방울이에요. 리포트에서는 ' + spatterRange + ' 대역을 살펴봐요. 비교 기준은 ' + spatter.referenceCount + '회, 추정값은 ' + spatter.estimatedCount + '회예요. 실제 횟수는 작업 영상에서 확인해요.',
+                '작업 영상에서 금속 방울이 튀는 시각을 적고 시간 파형의 같은 시각과 비교해 보세요. 실제 횟수는 영상에서 센 값으로 확인해요.'],
             [/험핑|용락|humping|burn\s*through|구멍/iu,
-                '험핑은 용접 비드가 물결처럼 반복해서 솟는 모양이고, 용락은 소재가 지나치게 녹아 구멍이 생기는 현상이에요. 비드 사진과 작업 영상에서 확인해요.',
-                '비드의 길이 방향을 따라 반복적으로 높아지는 부분이 있는지 보고, 용락은 소재를 관통한 구멍이 있는지 따로 확인해요.'],
+                '험핑은 용접 비드가 물결처럼 반복해서 솟는 모양이에요. 리포트에서는 가능성을 살펴보도록 안내해요. 실제 여부는 비드 사진이나 작업 영상으로 확인해요.',
+                '비드의 길이 방향을 따라 반복적으로 높아지는 부분이 있는지 확인해요. 소재를 관통한 구멍이 있다면 용락 가능성을 별도로 확인할 수 있어요.'],
             [/주파수|피크|fft|그래프|파형|dbfs|hz/iu,
                 '이 녹음에서 가장 큰 주파수 성분은 ' + number.format(signal.fft.peakHz) + ' Hz이고, 레벨은 ' + number.format(signal.fft.peakDbFS) + ' dBFS예요. 특정 결함을 확인하려면 같은 조건의 기준음과 작업 기록을 비교해야 해요.',
                 'Hz는 초당 진동 횟수이고, dBFS는 이 파일에서 표현할 수 있는 최대 크기에 대한 디지털 레벨이에요. 다음 녹음도 같은 위치와 장치 설정에서 찍어 비교해 보세요.'],
@@ -174,7 +221,7 @@
         ];
         return replies.filter(([match]) => match.test(topic)).slice(0, 2)
             .map(([, answer, elaboration]) => referringBack ? elaboration : answer).join('\n\n') ||
-            '이 리포트에서는 용접 녹음, 주파수 성분, 다음 점검 항목을 설명할 수 있어요. 궁금한 주파수나 작업 항목을 짚어 질문해 주세요.';
+            '아크 상태, FFT 그래프, 점수, 보호가스나 스패터·험핑 확인 방법 중 궁금한 항목을 물어보세요.';
     }
 
     function equipmentContext(device, report) {

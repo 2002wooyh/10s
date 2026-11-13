@@ -331,9 +331,8 @@
         });
     }
 
-    function beginDemo(id, fromHome = false) {
+    function beginDemo(device, fromHome = false) {
         if (session) return;
-        const device = fromHome ? TenData.homeDemoDevice() : activeDevice(id);
         if (!device) return notice('등록된 장비를 찾을 수 없습니다.');
         stopDemo();
         if (fromHome) {
@@ -342,8 +341,7 @@
             scanProgress.setAttribute('aria-label', `${device.name} 점검 진행률`);
             scanStatus.textContent = `${device.name} 점검을 시작했어요.`;
         } else {
-            if (panels.at(-1)?.type === 'report') panels.pop();
-            panel('measuring', id);
+            panel('measuring', device.id);
         }
 
         const progress = fromHome ? scanProgress : $('demo-progress');
@@ -375,6 +373,14 @@
         run.frame = requestAnimationFrame(tick);
     }
 
+    function remeasure(id) {
+        const device = activeDevice(id);
+        if (!device) return notice('등록된 장비를 찾을 수 없습니다.');
+        changeTab('home', scanButton);
+        scanButton.focus({ preventScroll: true });
+        beginDemo(device, true);
+    }
+
     function tagUrl(id) {
         const url = new URL(location.pathname, location.href);
         url.searchParams.set('device', id);
@@ -399,7 +405,7 @@
         const report = TenData.reportForDisplay(saved);
         const details = report.recording === 'welding-demo' ? WeldingReport.exportLines() : [
             report.rpmContext,
-            '', '참고 신호의 주파수 변화 (기준 / 비교, dBFS)',
+            '', '주파수 변화 (기준 / 비교, dBFS)',
             ...report.peaks.map(peak => peak.hz + ' Hz  ' + peak.baseline + ' / ' + peak.measured + '  (' + peak.change + ' dB)'),
             '', '분석 근거', ...report.observations, '', '확인할 항목', ...report.nextChecks
         ];
@@ -458,7 +464,7 @@
                     stopDemo();
                     scanStatus.textContent = '점검을 취소했어요.';
                 } else {
-                    beginDemo(null, true);
+                    beginDemo(TenData.homeDemoDevice(), true);
                 }
                 break;
             case 'open-device': panel('device', id); break;
@@ -477,7 +483,8 @@
                 notice(data.storageIssue || '리포트를 삭제했습니다.');
                 break;
             }
-            case 'run-demo': beginDemo(id); break;
+            case 'run-demo': beginDemo(activeDevice(id)); break;
+            case 'remeasure': remeasure(id); break;
             case 'copy-tag-link': void copyTag(id); break;
             case 'download-report': download(id); break;
             case 'close-sheet': closePanels(); break;

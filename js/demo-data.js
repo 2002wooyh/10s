@@ -99,7 +99,7 @@
 
     const weldingReportCopy = {
         statusLabel: '분석 완료',
-        summary: '용접 녹음의 파형과 주요 주파수를 살펴봤어요.'
+        summary: '보호가스 유량과 스패터를 살펴보고, 용접선에 험핑이 있는지 확인해 보세요.'
     };
 
     let sessionState = null;
@@ -123,7 +123,7 @@
             lines: [[first, -36, 0.6], [first * 2, -52, 5.8], [first * 3, -57, 1.8],
                 [first * 4, -62, 0.4], [first * 5, -64, -0.7]],
             summary: device.category + '의 비교 신호에서 일부 성분이 기준보다 높아요. 같은 운전 조건에서 다시 비교해 보세요.',
-            evidence: '참고 신호의 주요 비교 성분',
+            evidence: '주요 비교 성분',
             nextChecks: ['같은 속도, 부하 및 측정 위치에서 비교 조건을 맞춥니다.', '주변 소음이 달라졌는지 확인하고 같은 변화가 반복되는지 살핍니다.']
         };
     }
@@ -189,7 +189,7 @@
         const rpmLabel = matchesSample ? '비교 기준 회전수' : '입력 회전수';
         const rpmContext = device.rpm
             ? `${rpmLabel} ${device.rpm.toLocaleString('ko-KR')} rpm · 1배 회전 주파수 ${rounded(device.rpm / 60, 2)} Hz`
-            : '회전수 미등록 · 참고 주파수로 비교';
+            : '회전수 미등록 · 주파수 성분으로 비교';
 
         return {
             ...identity, status: profile.status, statusLabel: statusLabels[profile.status],
@@ -212,9 +212,10 @@
                 .replace('예시 가동음', '비교 신호')
                 .replace('예시 스펙트럼', '비교 스펙트럼'),
             rpmContext: report.rpmContext.replace('예시 회전수', '비교 기준 회전수')
-                .replace('예시 주파수', '참고 주파수'),
+                .replace('예시 주파수', '주파수 성분')
+                .replace('참고 주파수', '주파수 성분'),
             observations: report.observations.map(item => typeof item === 'string'
-                ? item.replace('예시 신호', '참고 신호').replace('예시 ', '')
+                ? item.replace(/(?:예시|참고) 신호의 /gu, '').replace('예시 ', '')
                 : item)
         };
     }

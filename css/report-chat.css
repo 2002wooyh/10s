@@ -99,7 +99,7 @@
 
 .report-chat-suggestions li { max-width: 100%; }
 .report-chat-question:hover, .report-chat-question:focus-visible { background: #f6f6f6; }
-.report-chat-questions .report-chat-composer { margin-top: 2px; }
+.report-chat-questions .report-chat-composer { margin-top: 14px; }
 
 .app-sheet[data-sheet="report-chat"] .sheet-header h1 {
     overflow: hidden;

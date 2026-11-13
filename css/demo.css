@@ -7,6 +7,8 @@
     --blue: #0968d7;
     --blue-deep: #0759b9;
     --blue-soft: #e9f3ff;
+    --scan-sky: #4facfe;
+    --scan-cyan: #00dfed;
     --line: #e3eaf3;
     --surface: #fff;
     --nav-height: 66px;
@@ -163,7 +165,7 @@ h1, h2, h3, p, ul, dl, dd { margin: 0; }
     border: 0;
     padding: 0;
     border-radius: 50%;
-    background: linear-gradient(135deg, #4facfe 0%, #00dfed 100%);
+    background: linear-gradient(135deg, var(--scan-sky) 0%, var(--scan-cyan) 100%);
     box-shadow: 0 15px 42px -16px rgba(34, 150, 230, .49);
     transition: transform .26s var(--sheet-motion), box-shadow .26s ease;
 }
